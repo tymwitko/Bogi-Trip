@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Bogi Trip</string>
+    <string name="openstreetmap_contributors"><a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a></string>
+</resources>
