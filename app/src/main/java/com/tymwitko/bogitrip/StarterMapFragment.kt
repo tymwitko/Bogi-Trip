@@ -12,6 +12,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.tymwitko.bogitrip.databinding.FragmentStarterMapBinding
@@ -33,6 +34,7 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import java.util.*
 import java.util.zip.DeflaterOutputStream
+import kotlin.random.Random
 
 
 // TODO: Rename parameter arguments, choose names that match
@@ -51,20 +53,12 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     private lateinit var v : View
     private var minRange: Double = 0.0
     private var maxRange: Double = 0.0
-//
-//    // This property is only valid between onCreateView and
-//    // onDestroyView.
-//    private val binding get() = _binding!!
-//
-//    private lateinit var mLastLocation : Location
+    private lateinit var myLocationOverlay: MyLocationNewOverlay
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Configuration.getInstance().userAgentValue = context?.packageName
         //important! set your user agent to prevent getting banned from the osm servers
-
-//        val policy = ThreadPolicy.Builder().permitAll().build()
-//        StrictMode.setThreadPolicy(policy)
     }
 
     override fun onCreateView(
@@ -76,10 +70,12 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         v = inflater.inflate(R.layout.fragment_starter_map, null)
         val btnRandom = v.findViewById<View>(R.id.btnRandom)
         val btnRoute = v.findViewById<View>(R.id.btnRoute)
+        val btnLocation = v.findViewById<View>(R.id.btnLocation)
         btnRandom.setOnClickListener(this)
         btnRoute.setOnClickListener(this)
-//        textViewCurrentLocation = v.findViewById<View>(R.id.textViewCurrentLocation)
+        btnLocation.setOnClickListener(this)
         map = v.findViewById<View>(R.id.mapview) as MapView
+        Log.d("TAG", "${v.findViewById<View>(R.id.btnLocation).id}")
         map.addMapListener(object : MapListener {
             override fun onScroll(event: ScrollEvent): Boolean {
                 Log.i(
@@ -98,20 +94,12 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                 return true
             }
         })
-        Log.d("FATAL EXCEPTION: main", "po listenerze")
 
-//        getView()?.findViewById<TextView>(R.id.textView)?.movementMethod = LinkMovementMethod.getInstance()
-//        map = MapView(requireView().findViewById(R.id.mapview))
-//        map = MapView(requireContext())
         map.setTileSource(TileSourceFactory.MAPNIK)
         map.zoomController.setVisibility(CustomZoomButtonsController.Visibility.SHOW_AND_FADEOUT)
         map.setUseDataConnection(true)
         map.controller.setZoom(14.0)
         map.controller.setCenter(GeoPoint(52.0, 21.0))
-
-//        val compassOverlay = CompassOverlay(context, InternalCompassOrientationProvider(context), map)
-//        compassOverlay.enableCompass()
-//        map.overlays.add(compassOverlay)
 
         val rotationGestureOverlay = RotationGestureOverlay(map)
         rotationGestureOverlay.isEnabled
@@ -140,7 +128,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         //icons listener
         //your items
         val items = ArrayList<OverlayItem>()
-        items.add(OverlayItem("Zero-zero", "Środek niczego lol", GeoPoint(0.0, 0.0)))
+//        items.add(OverlayItem("Zero-zero", "Środek niczego lol", GeoPoint(0.0, 0.0)))
 
         //the overlay
         @Suppress("DEPRECATION") val overlay = ItemizedOverlayWithFocus(items, object: ItemizedIconOverlay.OnItemGestureListener<OverlayItem>{
@@ -157,9 +145,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         map.overlays.add(overlay)
 
         // Acquire a reference to the system Location Manager
-        Log.d("FATAL EXCEPTION: main", "przed managerem")
         val locationManager = requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        Log.d("FATAL EXCEPTION: main", "po locationmanagerze")
 
         val provider = GpsMyLocationProvider(requireContext())
         provider.addLocationSource(LocationManager.GPS_PROVIDER)
@@ -206,7 +192,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                 locationListener
             )
         }
-        val myLocationOverlay = MyLocationNewOverlay(provider, map)
+        myLocationOverlay = MyLocationNewOverlay(provider, map)
         if (!myLocationOverlay.enableMyLocation()) {
             Log.d("TAG", "Location not enabled")
         }
@@ -216,27 +202,26 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             android.R.drawable.presence_online
         )
         myLocationOverlay.setPersonIcon(icon)
-
         myLocationOverlay.runOnFirstFix(Runnable { // never reaches this point
             Log.d("TAG", "runOnFirstFix")
             if (myLocationOverlay.myLocation == null) {
                 Log.d("TAG", "Location nott retrieved")
             }
         })
-        Log.d("FATAL EXCEPTION: main", "w location listenerze")
         map.overlays.add(myLocationOverlay)
 
         if (myLocationOverlay.myLocation == null) {
             // could be too early
             Log.d("TAG", "Location not retrieved")
         }
-        Log.d("FATAL EXCEPTION: main", "przed returnem")
+
+        map.controller.animateTo(myLocationOverlay.myLocation)
+        map.controller.setZoom(14.0)
         return v
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        Log.d("FATAL EXCEPTION: main", "view created")
     }
 
     override fun onPause() {
@@ -273,10 +258,29 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         if (p0 == v.findViewById(R.id.btnRandom)){
             generateRandom(minRange, maxRange)
         }
+        if (p0 == v.findViewById(R.id.btnRoute)){
+            drawRoute()
+        }
+        if (p0 == v.findViewById(R.id.btnLocation)){
+            map.controller.animateTo(myLocationOverlay.myLocation)
+            map.controller.setZoom(14.0)
+        }
+    }
+
+    private fun drawRoute() {
+        TODO("Not yet implemented")
     }
 
     private fun generateRandom(minRange: Double, maxRange: Double) {
-        TODO("Not yet implemented")
+        Log.d("TAG", "generateRandom")
+        if (maxRange >= minRange && maxRange > 0 && minRange >= 0) {
+            val randAng = Random.nextFloat() * 360f
+            val randDist = Random.nextFloat() * (maxRange - minRange) + minRange
+        }
+        else{
+            Log.d("TAG", "invalid ranges")
+            Toast.makeText(requireContext(), "Invalid ranges!", Toast.LENGTH_SHORT)
+        }
     }
 
     override fun onLongClick(p0: View?): Boolean {

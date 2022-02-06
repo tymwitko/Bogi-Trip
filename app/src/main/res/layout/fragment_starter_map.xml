@@ -28,7 +28,7 @@
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
         android:layout_alignParentTop="true"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         android:layout_marginEnd="8dp"
         android:minWidth="32dp"
         android:minHeight="48dp"
@@ -47,26 +47,39 @@
         android:src="@drawable/navto_small" />
 
     <ImageButton
-        android:id="@+id/enablePanning"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/btnRoute"
+        android:id="@+id/btnLocation"
+        android:layout_width="56dp"
+        android:layout_height="53dp"
+        android:layout_below="@+id/btnRoute"
         android:layout_alignParentEnd="true"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
-        android:background="#00ffffff"
-        android:contentDescription="Center map"
-        android:cropToPadding="true"
-        android:src="@drawable/ic_menu_mylocation" />
+        android:background="?attr/selectableItemBackground"
+        android:minWidth="32dp"
+        android:minHeight="48dp"
+        android:src="@drawable/osm_ic_center_map" />
+
+<!--    <ImageButton-->
+<!--        android:id="@+id/enablePanning"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_below="@id/btnRoute"-->
+<!--        android:layout_alignParentEnd="true"-->
+<!--        android:layout_marginTop="8dp"-->
+<!--        android:layout_marginEnd="8dp"-->
+<!--        android:background="#00ffffff"-->
+<!--        android:contentDescription="Center map"-->
+<!--        android:cropToPadding="true"-->
+<!--        android:src="@drawable/ic_menu_mylocation" />-->
 
     <EditText
         android:id="@+id/editRangeMax"
         android:layout_width="160dp"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         android:layout_marginEnd="8dp"
-        android:layout_toLeftOf="@+id/btnRandom"
+        android:layout_toStartOf="@+id/btnRandom"
         android:ems="10"
         android:hint="Maximum range"
         android:inputType="numberDecimal" />
@@ -79,9 +92,9 @@
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         android:layout_marginEnd="8dp"
-        android:layout_toLeftOf="@+id/editRangeMax"
+        android:layout_toStartOf="@+id/editRangeMax"
         android:ems="10"
         android:hint="Minimum range"
         android:inputType="numberDecimal" />
