@@ -47,6 +47,7 @@ dependencies {
     implementation 'org.osmdroid:osmdroid-geopackage:6.1.11'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'org.osmdroid:osmdroid-shape:6.1.11'
+    implementation 'androidx.core:core-ktx:1.7.0'
 
     // Kotlin
     implementation("androidx.navigation:navigation-fragment-ktx:2.4.0")

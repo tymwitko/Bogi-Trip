@@ -7,11 +7,14 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.location.*
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -34,13 +37,10 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import java.util.*
 import java.util.zip.DeflaterOutputStream
+import kotlin.math.*
 import kotlin.random.Random
 
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
 
 /**
  * A simple [Fragment] subclass.
@@ -53,7 +53,9 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     private lateinit var v : View
     private var minRange: Double = 0.0
     private var maxRange: Double = 0.0
+    private val items = ArrayList<OverlayItem>()
     private lateinit var myLocationOverlay: MyLocationNewOverlay
+    private lateinit var randomOverlay: ItemizedOverlayWithFocus<OverlayItem>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,6 +76,38 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         btnRandom.setOnClickListener(this)
         btnRoute.setOnClickListener(this)
         btnLocation.setOnClickListener(this)
+        val editMinRange = v.findViewById<View>(R.id.editRangeMin) as EditText
+        val editMaxRange = v.findViewById<View>(R.id.editRangeMax) as EditText
+//        editMinRange.doAfter
+
+        editMinRange.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
+            }
+            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
+                minRange = if (s.isNotEmpty()) {
+                    s.toString().toDouble()
+                }else{
+                    0.0
+                }
+            }
+            override fun afterTextChanged(s: Editable) {
+            }
+        })
+
+        editMaxRange.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
+            }
+            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
+                maxRange = if (s.isNotEmpty()) {
+                    s.toString().toDouble()
+                }else{
+                    0.0
+                }
+            }
+            override fun afterTextChanged(s: Editable) {
+            }
+        })
+
         map = v.findViewById<View>(R.id.mapview) as MapView
         Log.d("TAG", "${v.findViewById<View>(R.id.btnLocation).id}")
         map.addMapListener(object : MapListener {
@@ -98,8 +132,8 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         map.setTileSource(TileSourceFactory.MAPNIK)
         map.zoomController.setVisibility(CustomZoomButtonsController.Visibility.SHOW_AND_FADEOUT)
         map.setUseDataConnection(true)
-        map.controller.setZoom(14.0)
-        map.controller.setCenter(GeoPoint(52.0, 21.0))
+        map.controller.setZoom(10.0)
+        map.controller.setCenter(GeoPoint(0.0, 0.0))
 
         val rotationGestureOverlay = RotationGestureOverlay(map)
         rotationGestureOverlay.isEnabled
@@ -127,22 +161,11 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 
         //icons listener
         //your items
-        val items = ArrayList<OverlayItem>()
 //        items.add(OverlayItem("Zero-zero", "Środek niczego lol", GeoPoint(0.0, 0.0)))
 
         //the overlay
-        @Suppress("DEPRECATION") val overlay = ItemizedOverlayWithFocus(items, object: ItemizedIconOverlay.OnItemGestureListener<OverlayItem>{
-            override fun onItemSingleTapUp(index:Int, item:OverlayItem):Boolean {
-                //do something
-                return true
-            }
-            override fun onItemLongPress(index:Int, item:OverlayItem):Boolean {
-                return false
-            }
-        }, context)
-        overlay.setFocusItemsOnTap(true);
 
-        map.overlays.add(overlay)
+//        map.overlays.add(overlay)
 
         // Acquire a reference to the system Location Manager
         val locationManager = requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -199,7 +222,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 
         myLocationOverlay.isDrawAccuracyEnabled = true
         val icon: Bitmap = BitmapFactory.decodeResource(resources,
-            android.R.drawable.presence_online
+            org.osmdroid.library.R.drawable.person
         )
         myLocationOverlay.setPersonIcon(icon)
         myLocationOverlay.runOnFirstFix(Runnable { // never reaches this point
@@ -209,11 +232,14 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             }
         })
         map.overlays.add(myLocationOverlay)
+        map.invalidate()
 
         if (myLocationOverlay.myLocation == null) {
             // could be too early
             Log.d("TAG", "Location not retrieved")
         }
+
+        map.controller.setCenter(myLocationOverlay.myLocation)
 
         map.controller.animateTo(myLocationOverlay.myLocation)
         map.controller.setZoom(14.0)
@@ -232,6 +258,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     override fun onResume() {
         super.onResume()
         map.onResume()
+        map.controller.setCenter(myLocationOverlay.myLocation)
     }
 
     companion object {
@@ -239,19 +266,16 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
          * Use this factory method to create a new instance of
          * this fragment using the provided parameters.
          *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
          * @return A new instance of fragment StarterMapFragment.
          */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            StarterMapFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
-                }
-            }
+//        @JvmStatic
+//        fun newInstance(param1: String, param2: String) =
+//            StarterMapFragment().apply {
+//                arguments = Bundle().apply {
+//                    putString(ARG_PARAM1, param1)
+//                    putString(ARG_PARAM2, param2)
+//                }
+//            }
     }
 
     override fun onClick(p0: View?) {
@@ -263,7 +287,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         }
         if (p0 == v.findViewById(R.id.btnLocation)){
             map.controller.animateTo(myLocationOverlay.myLocation)
-            map.controller.setZoom(14.0)
+//            map.controller.setZoom(16.0)
         }
     }
 
@@ -271,19 +295,48 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         TODO("Not yet implemented")
     }
 
-    private fun generateRandom(minRange: Double, maxRange: Double) {
-        Log.d("TAG", "generateRandom")
-        if (maxRange >= minRange && maxRange > 0 && minRange >= 0) {
+    private fun generateRandom(minRangeArg: Double, maxRangeArg: Double) {
+        val minR = minRangeArg * 1000
+        val maxR = maxRangeArg * 1000
+        if (maxR >= minR && maxR > 0 && minR >= 0) {
             val randAng = Random.nextFloat() * 360f
-            val randDist = Random.nextFloat() * (maxRange - minRange) + minRange
+            val randDist = Random.nextFloat() * (maxR - minR) + minR
+            if (this::randomOverlay.isInitialized && randomOverlay in map.overlays) {
+                map.overlays.remove(randomOverlay)
+                items.clear()
+            }
+            items.add(OverlayItem("Random point", "Random point generated by the app", moveByDistAngle(randDist, randAng, myLocationOverlay)))
+            //TODO: coords link for different apps or nav
+            @Suppress("DEPRECATION")
+            randomOverlay = ItemizedOverlayWithFocus(items, object: ItemizedIconOverlay.OnItemGestureListener<OverlayItem>{
+                override fun onItemSingleTapUp(index:Int, item:OverlayItem):Boolean {
+                    //do something
+                    return true
+                }
+                override fun onItemLongPress(index:Int, item:OverlayItem):Boolean {
+                    return false
+                }
+            }, context)
+            randomOverlay.setFocusItemsOnTap(true);
+            map.overlays.add(randomOverlay)
+            map.invalidate()
         }
         else{
-            Log.d("TAG", "invalid ranges")
-            Toast.makeText(requireContext(), "Invalid ranges!", Toast.LENGTH_SHORT)
+            Toast.makeText(requireContext(), "Invalid ranges!", Toast.LENGTH_SHORT).show()
         }
     }
 
+    private fun moveByDistAngle(distanceMeters: Double, angle: Float, origin: MyLocationNewOverlay): GeoPoint {
+        val distRadians = distanceMeters / (6372797.6)
+        val oriLoc = origin.myLocation
+        val lat1 = oriLoc.latitude * PI / 180
+        val lon1 = oriLoc.longitude * PI / 180
+        val lat2 = asin(sin(lat1) * cos(distRadians) + cos(lat1) * sin(distRadians) * cos(angle))
+        val lon2 = lon1 + atan2(sin(angle) * sin(distRadians) * cos(lat1), cos(distRadians) - sin(lat1) * sin(lat2))
+        return GeoPoint(lat2 * 180 / PI, lon2 * 180 / PI)
+    }
+
     override fun onLongClick(p0: View?): Boolean {
-        TODO("Not yet implemented")
+        return false
     }
 }
