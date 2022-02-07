@@ -3,7 +3,13 @@ Android app for randomizing the trip destination within selected distance. Inspi
 
 Note: this is by no means a finished project and should not be used (yet).
 
+## Current functionality
+- displaying location
+- displaying selected range
+- randomizing a location within the range
+
+
 ## TODO:
-- range display
 - route calculation
 - navigation (?)
+- resume() support

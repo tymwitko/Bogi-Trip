@@ -3,8 +3,10 @@ package com.tymwitko.bogitrip
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.location.*
 import android.os.Bundle
 import android.text.Editable
@@ -18,8 +20,7 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import com.tymwitko.bogitrip.databinding.FragmentStarterMapBinding
-import org.osmdroid.api.IGeoPoint
+import org.mapsforge.map.layer.overlay.Circle
 import org.osmdroid.api.IMapView
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapListener
@@ -27,19 +28,16 @@ import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
+import org.osmdroid.util.TileSystem
 import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.*
-import org.osmdroid.views.overlay.compass.CompassOverlay
-import org.osmdroid.views.overlay.compass.InternalCompassOrientationProvider
 import org.osmdroid.views.overlay.gestures.RotationGestureOverlay
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import java.util.*
-import java.util.zip.DeflaterOutputStream
 import kotlin.math.*
 import kotlin.random.Random
-
 
 
 /**
@@ -56,7 +54,8 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     private val items = ArrayList<OverlayItem>()
     private lateinit var myLocationOverlay: MyLocationNewOverlay
     private lateinit var randomOverlay: ItemizedOverlayWithFocus<OverlayItem>
-
+    private lateinit var pmin: Polygon
+    private lateinit var pmax: Polygon
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Configuration.getInstance().userAgentValue = context?.packageName
@@ -70,46 +69,27 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     ): View {
         super.onCreateView(inflater, container, savedInstanceState)
         v = inflater.inflate(R.layout.fragment_starter_map, null)
+
         val btnRandom = v.findViewById<View>(R.id.btnRandom)
         val btnRoute = v.findViewById<View>(R.id.btnRoute)
         val btnLocation = v.findViewById<View>(R.id.btnLocation)
+
         btnRandom.setOnClickListener(this)
         btnRoute.setOnClickListener(this)
         btnLocation.setOnClickListener(this)
+
         val editMinRange = v.findViewById<View>(R.id.editRangeMin) as EditText
         val editMaxRange = v.findViewById<View>(R.id.editRangeMax) as EditText
+
+        editMinRange.backgroundTintList = ColorStateList.valueOf(Color.MAGENTA)
+        editMaxRange.backgroundTintList = ColorStateList.valueOf(Color.BLUE)
+        editMinRange.setTextColor(ColorStateList.valueOf(Color.MAGENTA))
+        editMaxRange.setTextColor(ColorStateList.valueOf(Color.BLUE))
+        editMinRange.setHintTextColor(ColorStateList.valueOf(Color.MAGENTA))
+        editMaxRange.setHintTextColor(ColorStateList.valueOf(Color.BLUE))
 //        editMinRange.doAfter
 
-        editMinRange.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
-            }
-            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
-                minRange = if (s.isNotEmpty()) {
-                    s.toString().toDouble()
-                }else{
-                    0.0
-                }
-            }
-            override fun afterTextChanged(s: Editable) {
-            }
-        })
-
-        editMaxRange.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
-            }
-            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
-                maxRange = if (s.isNotEmpty()) {
-                    s.toString().toDouble()
-                }else{
-                    0.0
-                }
-            }
-            override fun afterTextChanged(s: Editable) {
-            }
-        })
-
         map = v.findViewById<View>(R.id.mapview) as MapView
-        Log.d("TAG", "${v.findViewById<View>(R.id.btnLocation).id}")
         map.addMapListener(object : MapListener {
             override fun onScroll(event: ScrollEvent): Boolean {
                 Log.i(
@@ -134,6 +114,9 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         map.setUseDataConnection(true)
         map.controller.setZoom(10.0)
         map.controller.setCenter(GeoPoint(0.0, 0.0))
+
+        map.setScrollableAreaLimitLatitude(TileSystem.MaxLatitude,-TileSystem.MaxLatitude, 0)
+        map.minZoomLevel = 3.0
 
         val rotationGestureOverlay = RotationGestureOverlay(map)
         rotationGestureOverlay.isEnabled
@@ -239,10 +222,53 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             Log.d("TAG", "Location not retrieved")
         }
 
+        editMinRange.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
+            }
+            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
+                minRange = if (s.isNotEmpty()) {
+                    s.toString().toDouble()
+                }else{
+                    0.0
+                }
+                try {
+                    if (myLocationOverlay.myLocation != null) {
+                        drawCircleMin()
+                    }
+                } catch (e: java.lang.IllegalArgumentException) {
+                    Toast.makeText(context, "Preview doesn't fit on the map!", Toast.LENGTH_SHORT).show()
+                }
+
+            }
+            override fun afterTextChanged(s: Editable) {
+            }
+        })
+
+        editMaxRange.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
+            }
+            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
+                maxRange = if (s.isNotEmpty()) {
+                    s.toString().toDouble()
+                }else{
+                    0.0
+                }
+                try {
+                    if (myLocationOverlay.myLocation != null) {
+                        drawCircleMax()
+                    }
+                } catch (e: java.lang.IllegalArgumentException) {
+                    Toast.makeText(context, "Preview doesn't fit on the map!", Toast.LENGTH_SHORT).show()
+                }
+            }
+            override fun afterTextChanged(s: Editable) {
+            }
+        })
+
         map.controller.setCenter(myLocationOverlay.myLocation)
 
         map.controller.animateTo(myLocationOverlay.myLocation)
-        map.controller.setZoom(14.0)
+        map.controller.setZoom(6.0)
         return v
     }
 
@@ -292,7 +318,64 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     }
 
     private fun drawRoute() {
-        TODO("Not yet implemented")
+        Toast.makeText(context, "Coming soon", Toast.LENGTH_SHORT).show()
+        //TODO("Not yet implemented")
+    }
+
+    private fun drawCircleMin() {
+        if (this::pmin.isInitialized && pmin in map.overlays) {
+            map.overlays.remove(pmin)
+        }
+        /*
+         * <b>Note</b></b: when plotting a point off the map, the conversion from
+         * screen coordinates to map coordinates will return values that are invalid from a latitude,longitude
+         * perspective. Sometimes this is a wanted behavior and sometimes it isn't. We are leaving it up to you,
+         * the developer using osmdroid to decide on what is right for your application. See
+         * <a href="https://github.com/osmdroid/osmdroid/pull/722">https://github.com/osmdroid/osmdroid/pull/722</a>
+         * for more information and the discussion associated with this.
+         */
+
+        //just in case the point is off the map, let's fix the coordinates
+        if (myLocationOverlay.myLocation.longitude < -180) myLocationOverlay.myLocation.longitude = myLocationOverlay.myLocation.longitude + 360
+        if (myLocationOverlay.myLocation.longitude > 180) myLocationOverlay.myLocation.longitude = myLocationOverlay.myLocation.longitude - 360
+        //latitude is a bit harder. see https://en.wikipedia.org/wiki/Mercator_projection
+        if (myLocationOverlay.myLocation.latitude > 85.05112877980659) myLocationOverlay.myLocation.latitude = 85.05112877980659
+        if (myLocationOverlay.myLocation.latitude < -85.05112877980659) myLocationOverlay.myLocation.latitude = -85.05112877980659
+        val circle: List<GeoPoint> = Polygon.pointsAsCircle(myLocationOverlay.myLocation, minRange*1000)
+        pmin = Polygon(map)
+        pmin.setStrokeColor(Color.MAGENTA)
+        pmin.points = circle
+        pmin.title = "A circle"
+        map.overlays.add(pmin)
+        map.invalidate()
+    }
+
+    private fun drawCircleMax() {
+        if (this::pmax.isInitialized && pmax in map.overlays) {
+            map.overlays.remove(pmax)
+        }
+        /*
+         * <b>Note</b></b: when plotting a point off the map, the conversion from
+         * screen coordinates to map coordinates will return values that are invalid from a latitude,longitude
+         * perspective. Sometimes this is a wanted behavior and sometimes it isn't. We are leaving it up to you,
+         * the developer using osmdroid to decide on what is right for your application. See
+         * <a href="https://github.com/osmdroid/osmdroid/pull/722">https://github.com/osmdroid/osmdroid/pull/722</a>
+         * for more information and the discussion associated with this.
+         */
+
+        //just in case the point is off the map, let's fix the coordinates
+        if (myLocationOverlay.myLocation.longitude < -180) myLocationOverlay.myLocation.longitude = myLocationOverlay.myLocation.longitude + 360
+        if (myLocationOverlay.myLocation.longitude > 180) myLocationOverlay.myLocation.longitude = myLocationOverlay.myLocation.longitude - 360
+        //latitude is a bit harder. see https://en.wikipedia.org/wiki/Mercator_projection
+        if (myLocationOverlay.myLocation.latitude > 85.05112877980659) myLocationOverlay.myLocation.latitude = 85.05112877980659
+        if (myLocationOverlay.myLocation.latitude < -85.05112877980659) myLocationOverlay.myLocation.latitude = -85.05112877980659
+        val circle: List<GeoPoint> = Polygon.pointsAsCircle(myLocationOverlay.myLocation, maxRange*1000)
+        pmax = Polygon(map)
+        pmax.setStrokeColor(Color.BLUE)
+        pmax.points = circle
+        pmax.title = "A circle"
+        map.overlays.add(pmax)
+        map.invalidate()
     }
 
     private fun generateRandom(minRangeArg: Double, maxRangeArg: Double) {
