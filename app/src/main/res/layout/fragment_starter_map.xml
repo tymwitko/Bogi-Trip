@@ -49,7 +49,7 @@
     <ImageButton
         android:id="@+id/btnLocation"
         android:layout_width="56dp"
-        android:layout_height="53dp"
+        android:layout_height="56dp"
         android:layout_below="@+id/btnRoute"
         android:layout_alignParentEnd="true"
         android:layout_marginTop="8dp"
@@ -58,6 +58,19 @@
         android:minWidth="32dp"
         android:minHeight="48dp"
         android:src="@drawable/osm_ic_center_map" />
+
+    <ImageButton
+        android:id="@+id/btnOrient"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_below="@+id/btnLocation"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:background="?attr/selectableItemBackground"
+        android:minWidth="32dp"
+        android:minHeight="48dp"
+        android:src="@drawable/ic_menu_compass" />
 
 <!--    <ImageButton-->
 <!--        android:id="@+id/enablePanning"-->

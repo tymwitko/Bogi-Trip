@@ -17,6 +17,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -56,6 +57,10 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     private lateinit var randomOverlay: ItemizedOverlayWithFocus<OverlayItem>
     private lateinit var pmin: Polygon
     private lateinit var pmax: Polygon
+    private var maxLat: Double = 85.05112877980658
+    private var lastLocLat: Double = 0.0
+    private var lastLocLong: Double = 0.0
+    private var isLocation = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Configuration.getInstance().userAgentValue = context?.packageName
@@ -73,10 +78,12 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         val btnRandom = v.findViewById<View>(R.id.btnRandom)
         val btnRoute = v.findViewById<View>(R.id.btnRoute)
         val btnLocation = v.findViewById<View>(R.id.btnLocation)
+        val btnOrient = v.findViewById<View>(R.id.btnOrient)
 
         btnRandom.setOnClickListener(this)
         btnRoute.setOnClickListener(this)
         btnLocation.setOnClickListener(this)
+        btnOrient.setOnClickListener(this)
 
         val editMinRange = v.findViewById<View>(R.id.editRangeMin) as EditText
         val editMaxRange = v.findViewById<View>(R.id.editRangeMax) as EditText
@@ -116,7 +123,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         map.controller.setCenter(GeoPoint(0.0, 0.0))
 
         map.setScrollableAreaLimitLatitude(TileSystem.MaxLatitude,-TileSystem.MaxLatitude, 0)
-        map.minZoomLevel = 3.0
+        map.minZoomLevel = 2.0
 
         val rotationGestureOverlay = RotationGestureOverlay(map)
         rotationGestureOverlay.isEnabled
@@ -142,14 +149,6 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         scaleBarOverlay.setScaleBarOffset(dm!!.widthPixels / 2, 10)
         map.overlays.add(scaleBarOverlay);
 
-        //icons listener
-        //your items
-//        items.add(OverlayItem("Zero-zero", "Środek niczego lol", GeoPoint(0.0, 0.0)))
-
-        //the overlay
-
-//        map.overlays.add(overlay)
-
         // Acquire a reference to the system Location Manager
         val locationManager = requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
@@ -167,6 +166,9 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             override fun onLocationChanged(location: Location) {
                 // Called when a new location is found by the network location provider.
                 Log.d("TAG", "Location: ${location.latitude}")
+                lastLocLat = location.latitude
+                lastLocLong = location.longitude
+                isLocation = true
             }
 
             override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {
@@ -193,7 +195,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             Log.d("TAG", "Location access granted")
             locationManager.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER,
-                10000,
+                100,
                 100f,
                 locationListener
             )
@@ -204,10 +206,10 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         }
 
         myLocationOverlay.isDrawAccuracyEnabled = true
-        val icon: Bitmap = BitmapFactory.decodeResource(resources,
-            org.osmdroid.library.R.drawable.person
-        )
-        myLocationOverlay.setPersonIcon(icon)
+//        val icon: Bitmap = BitmapFactory.decodeResource(resources,
+//            org.osmdroid.library.R.drawable.person
+//        )
+//        myLocationOverlay.setPersonIcon(icon)
         myLocationOverlay.runOnFirstFix(Runnable { // never reaches this point
             Log.d("TAG", "runOnFirstFix")
             if (myLocationOverlay.myLocation == null) {
@@ -232,11 +234,11 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                     0.0
                 }
                 try {
-                    if (myLocationOverlay.myLocation != null) {
+                    if (isLocation) {
                         drawCircleMin()
                     }
                 } catch (e: java.lang.IllegalArgumentException) {
-                    Toast.makeText(context, "Preview doesn't fit on the map!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, R.string.TOAST_EDGE, Toast.LENGTH_SHORT).show()
                 }
 
             }
@@ -254,11 +256,11 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                     0.0
                 }
                 try {
-                    if (myLocationOverlay.myLocation != null) {
+                    if (isLocation) {
                         drawCircleMax()
                     }
                 } catch (e: java.lang.IllegalArgumentException) {
-                    Toast.makeText(context, "Preview doesn't fit on the map!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, R.string.TOAST_EDGE, Toast.LENGTH_SHORT).show()
                 }
             }
             override fun afterTextChanged(s: Editable) {
@@ -269,11 +271,28 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 
         map.controller.animateTo(myLocationOverlay.myLocation)
         map.controller.setZoom(6.0)
+
+        if (savedInstanceState != null){
+            map.controller.setZoom(savedInstanceState.getFloat("ZOOM").toDouble())
+            map.controller.setCenter(GeoPoint(savedInstanceState.getFloat("CENTER_LAT").toDouble(), savedInstanceState.getFloat("CENTER_LONG").toDouble()))
+            map.mapOrientation = savedInstanceState.getFloat("ORIENTATION")
+            isLocation = savedInstanceState.getBoolean("IS_LOC")
+            lastLocLat = savedInstanceState.getFloat("LOC_LAT").toDouble()
+            lastLocLong = savedInstanceState.getFloat("LOC_LONG").toDouble()
+//            map.controller.setCenter(GeoPoint(lastLocLat, lastLocLong))
+//            dessertsSold = savedInstanceState.getInt(KEY_DESSERT_SOLD, 0)
+//            showCurrentDessert()
+        }
         return v
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        Log.d("TAG", "onviewcreated")
+        if(isLocation) {
+            drawCircleMin()
+            drawCircleMax()
+        }
     }
 
     override fun onPause() {
@@ -285,6 +304,31 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         super.onResume()
         map.onResume()
         map.controller.setCenter(myLocationOverlay.myLocation)
+        myLocationOverlay.onResume()
+        if (this::randomOverlay.isInitialized) {
+            randomOverlay.onResume()
+        }
+        if (this::pmin.isInitialized) {
+            pmin.onResume()
+        }
+        if (this::pmax.isInitialized) {
+            pmax.onResume()
+        }
+//        myLocationOverlay.lastFix
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        Log.d("TAG", "onSaveInstanceState called")
+        try {
+            outState.putFloat("LOC_LAT", lastLocLat.toFloat())
+            outState.putFloat("LOC_LONG", lastLocLong.toFloat())
+        } catch (e: java.lang.NullPointerException){}
+        outState.putFloat("CENTER_LAT", map.mapCenter.latitude.toFloat())
+        outState.putFloat("CENTER_LONG", map.mapCenter.longitude.toFloat())
+        outState.putFloat("ZOOM", map.zoomLevelDouble.toFloat())
+        outState.putFloat("ORIENTATION", map.mapOrientation)
+        outState.putBoolean("IS_LOC", isLocation)
     }
 
     companion object {
@@ -306,7 +350,11 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 
     override fun onClick(p0: View?) {
         if (p0 == v.findViewById(R.id.btnRandom)){
-            generateRandom(minRange, maxRange)
+            if (myLocationOverlay.myLocation != null) {
+                generateRandom(minRange, maxRange)
+            } else {
+                Toast.makeText(context, R.string.TOAST_LOC, Toast.LENGTH_SHORT).show()
+            }
         }
         if (p0 == v.findViewById(R.id.btnRoute)){
             drawRoute()
@@ -315,14 +363,21 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             map.controller.animateTo(myLocationOverlay.myLocation)
 //            map.controller.setZoom(16.0)
         }
+        if (p0 == v.findViewById(R.id.btnOrient)){
+            map.mapOrientation = 0.0f;
+        }
     }
 
     private fun drawRoute() {
-        Toast.makeText(context, "Coming soon", Toast.LENGTH_SHORT).show()
-        //TODO("Not yet implemented")
+        Toast.makeText(context, R.string.TOAST_SOON, Toast.LENGTH_SHORT).show()
+        //TODO: Routing
     }
 
     private fun drawCircleMin() {
+        var loc = myLocationOverlay.myLocation
+        if(loc == null){
+            loc = GeoPoint(lastLocLat, lastLocLong)
+        }
         if (this::pmin.isInitialized && pmin in map.overlays) {
             map.overlays.remove(pmin)
         }
@@ -336,21 +391,26 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
          */
 
         //just in case the point is off the map, let's fix the coordinates
-        if (myLocationOverlay.myLocation.longitude < -180) myLocationOverlay.myLocation.longitude = myLocationOverlay.myLocation.longitude + 360
-        if (myLocationOverlay.myLocation.longitude > 180) myLocationOverlay.myLocation.longitude = myLocationOverlay.myLocation.longitude - 360
+        if (loc.longitude < -180) loc.longitude = loc.longitude + 360
+        if (loc.longitude > 180) loc.longitude = loc.longitude - 360
         //latitude is a bit harder. see https://en.wikipedia.org/wiki/Mercator_projection
-        if (myLocationOverlay.myLocation.latitude > 85.05112877980659) myLocationOverlay.myLocation.latitude = 85.05112877980659
-        if (myLocationOverlay.myLocation.latitude < -85.05112877980659) myLocationOverlay.myLocation.latitude = -85.05112877980659
-        val circle: List<GeoPoint> = Polygon.pointsAsCircle(myLocationOverlay.myLocation, minRange*1000)
+        if (loc.latitude > maxLat) loc.latitude = maxLat
+        if (loc.latitude < -maxLat) loc.latitude = -maxLat
+        val circle: List<GeoPoint> = Polygon.pointsAsCircle(loc, minRange*1000)
+        //TODO: for (point in circle) { if (point.latitude > maxLat || point.latitude < -maxLat) { point.moveToDesiredPosition() } }
         pmin = Polygon(map)
         pmin.setStrokeColor(Color.MAGENTA)
         pmin.points = circle
-        pmin.title = "A circle"
+        pmin.title = getString(R.string.MIN_RANGE)
         map.overlays.add(pmin)
         map.invalidate()
     }
 
     private fun drawCircleMax() {
+        var loc = myLocationOverlay.myLocation
+        if(loc == null){
+            loc = GeoPoint(lastLocLat, lastLocLong)
+        }
         if (this::pmax.isInitialized && pmax in map.overlays) {
             map.overlays.remove(pmax)
         }
@@ -364,17 +424,28 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
          */
 
         //just in case the point is off the map, let's fix the coordinates
-        if (myLocationOverlay.myLocation.longitude < -180) myLocationOverlay.myLocation.longitude = myLocationOverlay.myLocation.longitude + 360
-        if (myLocationOverlay.myLocation.longitude > 180) myLocationOverlay.myLocation.longitude = myLocationOverlay.myLocation.longitude - 360
+        if (loc.longitude < -180) loc.longitude = loc.longitude + 360
+        if (loc.longitude > 180) loc.longitude = loc.longitude - 360
         //latitude is a bit harder. see https://en.wikipedia.org/wiki/Mercator_projection
-        if (myLocationOverlay.myLocation.latitude > 85.05112877980659) myLocationOverlay.myLocation.latitude = 85.05112877980659
-        if (myLocationOverlay.myLocation.latitude < -85.05112877980659) myLocationOverlay.myLocation.latitude = -85.05112877980659
-        val circle: List<GeoPoint> = Polygon.pointsAsCircle(myLocationOverlay.myLocation, maxRange*1000)
+        if (loc.latitude > maxLat) loc.latitude = maxLat
+        if (loc.latitude < -maxLat) loc.latitude = -maxLat
+        val circle: List<GeoPoint> = Polygon.pointsAsCircle(loc, maxRange*1000)
+        //TODO: implement moveToDesiredPosition()
+//        for (point in circle){
+//            if (point.latitude > maxLat || point.latitude < -maxLat){
+//                point.moveToDesiredPosition()
+//            }
+//        }
         pmax = Polygon(map)
         pmax.setStrokeColor(Color.BLUE)
         pmax.points = circle
-        pmax.title = "A circle"
+        pmax.title = getString(R.string.MAX_RANGE)
         map.overlays.add(pmax)
+        if (this::pmin.isInitialized){
+            Log.d("TAG", "drawMin")
+            drawCircleMin()
+        }
+
         map.invalidate()
     }
 
@@ -388,7 +459,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                 map.overlays.remove(randomOverlay)
                 items.clear()
             }
-            items.add(OverlayItem("Random point", "Random point generated by the app", moveByDistAngle(randDist, randAng, myLocationOverlay)))
+            items.add(OverlayItem(getString(R.string.RAND_TITLE), getString(R.string.RAND_SNIP), moveByDistAngle(randDist, randAng, myLocationOverlay)))
             //TODO: coords link for different apps or nav
             @Suppress("DEPRECATION")
             randomOverlay = ItemizedOverlayWithFocus(items, object: ItemizedIconOverlay.OnItemGestureListener<OverlayItem>{
@@ -405,7 +476,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             map.invalidate()
         }
         else{
-            Toast.makeText(requireContext(), "Invalid ranges!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), R.string.TOAST_INV, Toast.LENGTH_SHORT).show()
         }
     }
 

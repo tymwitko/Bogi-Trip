@@ -12,6 +12,7 @@ import android.location.LocationManager
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.text.method.LinkMovementMethod
+import android.util.Log
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -32,6 +33,7 @@ class MainActivity : AppCompatActivity() {
 //
 //    }
     private val REQUEST_PERMISSIONS_REQUEST_CODE = 1
+    val TAG = "TAG"
 //    private lateinit var map : MapView
 
     private lateinit var navController: NavController
@@ -81,6 +83,36 @@ class MainActivity : AppCompatActivity() {
                 permissionsToRequest.toTypedArray(),
                 REQUEST_PERMISSIONS_REQUEST_CODE)
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Log.d(TAG, "onStartCalled")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d(TAG, "onResume Called")
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Log.d(TAG, "onPause Called")
+    }
+
+    override fun onStop() {
+        super.onStop()
+        Log.d(TAG, "onStop Called")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.d(TAG, "onDestroy Called")
+    }
+
+    override fun onRestart() {
+        super.onRestart()
+        Log.d(TAG, "onRestart Called")
     }
 
 
