@@ -12,4 +12,3 @@ Note: this is by no means a finished project and should not be used (yet).
 ## TODO:
 - route calculation
 - navigation (?)
-- resume() support
