@@ -9,6 +9,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.location.*
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.DisplayMetrics
@@ -17,16 +18,13 @@ import android.view.*
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.location.LocationManagerCompat.requestLocationUpdates
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import org.osmdroid.api.IMapView
 import org.osmdroid.bonuspack.routing.OSRMRoadManager
 import org.osmdroid.bonuspack.routing.Road
 import org.osmdroid.bonuspack.routing.RoadManager
-import org.osmdroid.bonuspack.routing.RoadNode
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
@@ -58,7 +56,7 @@ enum class STATE{
     INIT, POINT, ROUTE, NAVI
 }
 
-class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickListener {
+class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickListener, TextToSpeech.OnInitListener {
 //    private var _binding: FragmentStarterMapBinding? = null
     private lateinit var map : MapView
     private lateinit var v : View
@@ -87,6 +85,8 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     private var lastLocLong: Double = 200.0
     private var isLocation = false
     private var state = STATE.INIT
+    private lateinit var tts: TextToSpeech
+//    private lateinit var orientationListener: OrientationEventListener
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Configuration.getInstance().userAgentValue = context?.packageName
@@ -103,6 +103,9 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         v = inflater.inflate(R.layout.fragment_starter_map, null)
 
         roadManager = OSRMRoadManager(context, context?.packageName)
+//        roadManager.addRequestOption("locale=US")
+        (roadManager as OSRMRoadManager).setMean(OSRMRoadManager.MEAN_BY_BIKE)
+//        roadManager.addRequestOption("vehicle=bike")
 
         btnRandom = v.findViewById(R.id.btnRandom)
         btnRoute = v.findViewById(R.id.btnRoute)
@@ -211,9 +214,10 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                 lastLocLat = location.latitude
                 lastLocLong = location.longitude
                 isLocation = true
-//                if(state == STATE.NAVI){
-//                    map.mapOrientation = compassOverlay.orientation
-//                }
+                if(state == STATE.NAVI){
+                    drawRoute()
+//                    map.mapOrientation = -compassOverlay.orientation
+                }
             }
 
             override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {
@@ -228,6 +232,24 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                 Log.d("TAG", "Provider disabled $provider")
             }
         }
+
+//        orientationListener =
+//            object : OrientationEventListener(context, SensorManager.SENSOR_DELAY_UI) {
+//                override fun onOrientationChanged(p0: Int) {
+//                    if (p0 != -1) {
+//                        //System.out.println("compass " + orientation);
+//                        //System.out.println("deviceOrientation " + deviceOrientation);
+//                        //this part adjusts the desired map rotation based on device orientation and compass heading
+////                        var t: Float = 360f - p0.toFloat() - compassOverlay.orientation
+////                        if (t < 0) t += 360f
+////                        if (t > 360) t -= 360f
+////                        var t = -p0
+//                        //System.out.println("screen heading to " + t);
+//                        map.mapOrientation = 360f - p0.toFloat()
+//                        Log.d("TAG", "wejszlem w sluchacza orientu, $p0")
+//                    }
+//                }
+//            }
 
         // Register the listener with the Location Manager to receive location updates
 
@@ -325,6 +347,8 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         })
         map.controller.setZoom(6.0)
 
+        tts = TextToSpeech(context, this)
+
         if (savedInstanceState != null){
             map.controller.setZoom(savedInstanceState.getFloat("ZOOM").toDouble())
             map.controller.setCenter(GeoPoint(savedInstanceState.getFloat("CENTER_LAT").toDouble(), savedInstanceState.getFloat("CENTER_LONG").toDouble()))
@@ -346,7 +370,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                         )
                     )
                 )
-                @Suppress("DEPRECATION")
+                //@Suppress("DEPRECATION")
                 randomOverlay = ItemizedOverlayWithFocus(
                     items,
                     object : ItemizedIconOverlay.OnItemGestureListener<OverlayItem> {
@@ -368,11 +392,18 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 
             if ((state == STATE.ROUTE || state == STATE.NAVI) && isLocation) {
                 drawRoute()
-                if (state == STATE.NAVI){
-                    btnRoute.isVisible = false
+                btnRoute.isVisible = false
+                if (state == STATE.ROUTE){
                     btnNavi.isVisible = true
+                }else{
+                    btnNavi.isVisible = false
                     btnOrient.isVisible = false
-
+                    btnQuitNavi.isVisible = true
+                    btnLocation.isVisible = false
+                    btnRandom.isVisible = false
+                    editMaxRange.isVisible = false
+                    editMinRange.isVisible = false
+                    insTextView.isVisible = true
                     navigate()
                 }
             }
@@ -381,43 +412,72 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     }
 
     private fun navigate() {
-        //TODO: fix buggy navigation view (rotation)
-        //TODO: navigation: text-to-speech, test text tips
+        //TODO: test navigation view (rotation)
         state = STATE.NAVI
         map.controller.setZoom(18.0)
         myLocationOverlay.enableFollowLocation()
         myLocationOverlay.enableAutoStop = false
-        val orientThread = Thread {
-            try {
-                while (state == STATE.NAVI) {
-                    map.mapOrientation = -compassOverlay.orientation
-                }
-            } catch (e: Exception) {
-                Log.d("TAG", e.toString())
-            }
-        }
-        orientThread.start()
+//        val orientThread = Thread {
+//            try {
+//                while (state == STATE.NAVI) {
+//                    activity?.runOnUiThread {
+//                        map.mapOrientation = -compassOverlay.orientation
+//                    }
+//                }
+//            } catch (e: Exception) {
+//                Log.d("TAG", "Error while orienting $e")
+//            }
+//        }
+//        orientThread.start()
+//        orientationListener.enable()
 
         var i = 0
         val insThread = Thread{
             try {
+                naviMapOrient()
                 insTextView.text = road.mNodes[1].mInstructions
-                while (i < road.mNodes.size){
-                    if (abs(myLocationOverlay.myLocation.latitude - road.mNodes[i+1].mLocation.latitude) < 0.00001) {
-                        insTextView.text = road.mNodes[i+1].mInstructions
+                while (i < road.mNodes.size && state == STATE.NAVI){
+                    if (abs(myLocationOverlay.myLocation.latitude - road.mNodes[i].mLocation.latitude) < 0.00005 && abs(myLocationOverlay.myLocation.latitude - road.mNodes[i].mLocation.latitude) < 0.00005) {
+                        insTextView.text = road.mNodes[i].mInstructions
+                        tts.speak(road.mNodes[i].mInstructions, TextToSpeech.QUEUE_FLUSH, null,"")
                         i += 1
+                        naviMapOrient()
                     }
                 }
-//                for (node in road.mNodes){
-//                    while (abs(myLocationOverlay.myLocation.latitude - node.mLocation.latitude) < 0.00001) {
-//                        Log.d("TAG", node.mInstructions)
-//                    }
-//                }
             } catch (e: Exception) {
-                Log.d("TAG", e.toString())
+                Log.d("TAG", "ERROR while instructing $e")
             }
         }
         insThread.start()
+    }
+
+    private fun naviMapOrient(){
+        if (road.mNodes.size > 1) {
+            val dlat =
+                (road.mNodes[1].mLocation.latitude - road.mNodes[0].mLocation.latitude).toFloat()
+            val dlong =
+                (road.mNodes[1].mLocation.longitude - road.mNodes[0].mLocation.longitude).toFloat()
+            var ori = (acos(dlong / (sqrt(dlat * dlat + dlong * dlong))) * 360f / (2f * PI.toFloat())) % 90f
+//            Log.d("TAG", "0: ${road.mNodes[0].mInstructions}, 1: ${road.mNodes[1].mInstructions}")
+//            Log.d("TAG","ori: $ori, dlat: $dlat, dlong: $dlong, arg: ${dlat / (sqrt(dlat * dlat + dlong * dlong))}")
+            ori = if (dlong > 0){
+                if (dlat > 0){
+                    -90 + abs(ori)
+                }else{
+                    -90 - abs(ori)
+                }
+            }else{
+                if (dlat > 0){
+                    90 - abs(ori)
+                }else{
+                    90 + abs(ori)
+                }
+            }
+//            Log.d("TAG","new ori: $ori")
+            activity?.runOnUiThread {
+                map.mapOrientation = ori
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -541,6 +601,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             insTextView.isVisible = false
             editMinRange.isVisible = true
             editMaxRange.isVisible = true
+//            orientationListener.disable()
         }
     }
 
@@ -565,8 +626,25 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                 val endPoint = GeoPoint(randomOverlay.getItem(0).point.latitude, randomOverlay.getItem(0).point.longitude)
                 waypoints.add(endPoint)
                 road = roadManager.getRoad(waypoints)
+                if(this::roadOverlay.isInitialized){
+                    map.overlays.remove(roadOverlay)
+                }
                 roadOverlay = RoadManager.buildRoadOverlay(road)
-                map.overlays.add(roadOverlay)
+//                if (state == STATE.NAVI){
+//                    for (overlay in map.overlays){
+//                        if (overlay is Polyline){
+//                            map.overlays.remove(overlay)
+//                        }
+//                    }
+//                }
+                if (road.mStatus == Road.STATUS_OK){
+                    map.overlays.add(roadOverlay)
+                }else{
+                    requireActivity().runOnUiThread(Runnable() {
+                        Toast.makeText(context, "Routing failed!", Toast.LENGTH_SHORT).show()
+                    })
+                }
+
             } catch (e: Exception) {
                 Log.d("TAG", e.toString())
                 Toast.makeText(context, "Routing failed!", Toast.LENGTH_SHORT).show()
@@ -574,6 +652,9 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         }
         thread.start()
         map.invalidate()
+        if (state == STATE.NAVI){
+            naviMapOrient()
+        }
     }
 
     private fun drawCircleMin() {
@@ -607,15 +688,15 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 //            }
 //        }
         pmin = Polygon(map)
+        pmin.infoWindow = null
         pmin.setStrokeColor(Color.MAGENTA)
         pmin.points = circle
-        pmin.title = getString(R.string.MIN_RANGE)
+//        pmin.title = getString(R.string.MIN_RANGE)
         map.overlays.add(pmin)
         map.invalidate()
     }
 
     private fun drawCircleMax() {
-        Log.d("TAG", "drawMin")
         var loc = myLocationOverlay.myLocation
         if(loc == null){
             loc = GeoPoint(lastLocLat, lastLocLong)
@@ -646,14 +727,11 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 //            }
 //        }
         pmax = Polygon(map)
+        pmax.infoWindow = null
         pmax.setStrokeColor(Color.BLUE)
         pmax.points = circle
-        pmax.title = getString(R.string.MAX_RANGE)
+//        pmax.title = getString(R.string.MAX_RANGE)
         map.overlays.add(pmax)
-        if (this::pmin.isInitialized){
-            drawCircleMin()
-        }
-
         map.invalidate()
     }
 
@@ -671,7 +749,6 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                 map.overlays.remove(roadOverlay)
             }
             items.add(OverlayItem(getString(R.string.RAND_TITLE), getString(R.string.RAND_SNIP), moveByDistAngle(randDist, randAng, myLocationOverlay)))
-            //TODO: coords link for different apps or nav if nav implementation fails
             randomOverlay = ItemizedOverlayWithFocus(items, object: ItemizedIconOverlay.OnItemGestureListener<OverlayItem>{
                 override fun onItemSingleTapUp(index:Int, item:OverlayItem):Boolean {
                     //do something
@@ -702,5 +779,27 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 
     override fun onLongClick(p0: View?): Boolean {
         return false
+    }
+
+    override fun onInit(p0: Int) {
+        // TTS
+        if (p0 == TextToSpeech.SUCCESS) {
+            // set US English as language for tts
+            var lang = Locale.GERMAN
+            //supported langs: ENG, FR, DE, CHN, JAP, KOR, IT
+            if (Locale.getDefault() in Locale.getAvailableLocales()){
+                lang = Locale.getDefault()
+            }
+            val result = tts.setLanguage(lang)
+
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Log.e("TTS","The Language specified is not supported!")
+            } else {
+//                buttonSpeak!!.isEnabled = true
+            }
+
+        } else {
+            Log.e("TTS", "Initilization Failed!")
+        }
     }
 }

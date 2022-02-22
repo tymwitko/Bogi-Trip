@@ -1,17 +1,15 @@
 # Bogi-Trip
 Android app for randomizing the trip destination within selected distance. Inspired by a school trip idea by Piotr Bogucki.
 
-Note: this is by no means a finished project and should not be used (yet).
-
 ## Current functionality
 - displaying location
 - displaying selected range
 - randomizing a location within the range
 - route calculation
 - text turn-by-turn instructions
+- text to speech instructions (all languages supported by both TTS and OSRM)
 
 
-## TODO:
-- fix buggy navigation view
-- text-to-speech instructions
-- test text instructions
+## Known issues:
+- no TTS in unsupported languages (fix: switch language to English)
+- rotation during navigation may be off at times (to test)
