@@ -7,8 +7,11 @@ Note: this is by no means a finished project and should not be used (yet).
 - displaying location
 - displaying selected range
 - randomizing a location within the range
+- route calculation
+- text turn-by-turn instructions
 
 
 ## TODO:
-- route calculation
-- navigation (?)
+- fix buggy navigation view
+- text-to-speech instructions
+- test text instructions
