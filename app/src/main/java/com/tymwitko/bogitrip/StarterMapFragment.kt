@@ -179,8 +179,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 
         compassOverlay = CompassOverlay(context, InternalCompassOrientationProvider(context), map)
         compassOverlay.enableCompass()
-        //TODO: remove when rotation during navigation works
-        map.overlays.add(compassOverlay)
+//        map.overlays.add(compassOverlay)
 
 
         // Note, "context" refers to your activity/application context.
