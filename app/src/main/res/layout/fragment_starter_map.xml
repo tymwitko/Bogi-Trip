@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/parent_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent" >
@@ -12,27 +13,31 @@
 
     </org.osmdroid.views.MapView>
 
-<!--    <TextView-->
-<!--        android:id="@+id/textViewCurrentLocation"-->
-<!--        android:layout_width="fill_parent"-->
-<!--        android:text="PLACEHOLDER"-->
-<!--        android:textAlignment="center"-->
-<!--        android:gravity="center"-->
-<!--        android:textColor="@android:color/white"-->
-<!--        android:background="#77000000"-->
-<!--        android:layout_height="wrap_content" />-->
-
     <ImageButton
         android:id="@+id/btnRandom"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
         android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="8dp"
-        android:minWidth="32dp"
-        android:minHeight="48dp"
-        android:src="@android:drawable/ic_menu_search" />
+        android:minWidth="54dp"
+        android:minHeight="51dp"
+        android:src="@android:drawable/ic_menu_search"
+        android:background="#6200EA" />
+
+    <ImageButton
+        android:id="@+id/btnQuitNavi"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        android:minWidth="96dp"
+        android:minHeight="96dp"
+        android:background="@color/design_default_color_error"
+        android:src="@android:drawable/ic_menu_close_clear_cancel" />
 
     <ImageButton
         android:id="@+id/btnRoute"
@@ -47,13 +52,27 @@
         android:src="@drawable/navto_small" />
 
     <ImageButton
-        android:id="@+id/btnLocation"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:layout_below="@+id/btnRoute"
+        android:id="@+id/btnNavi"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/btnRandom"
         android:layout_alignParentEnd="true"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="#6200EA"
+        android:minWidth="54dp"
+        android:minHeight="51dp"
+        android:src="@android:drawable/ic_dialog_map" />
+
+    <ImageButton
+        android:id="@+id/btnLocation"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_below="@+id/editRangeMin"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="8dp"
         android:background="?attr/selectableItemBackground"
         android:minWidth="32dp"
         android:minHeight="48dp"
@@ -64,26 +83,23 @@
         android:layout_width="56dp"
         android:layout_height="56dp"
         android:layout_below="@+id/btnLocation"
-        android:layout_alignParentEnd="true"
+        android:layout_alignParentStart="true"
         android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
         android:background="?attr/selectableItemBackground"
         android:minWidth="32dp"
         android:minHeight="48dp"
-        android:src="@drawable/ic_menu_compass" />
+        android:src="@drawable/ic_menu_compass"
+        app:tint="@android:color/holo_red_light" />
 
-<!--    <ImageButton-->
-<!--        android:id="@+id/enablePanning"-->
-<!--        android:layout_width="wrap_content"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:layout_below="@id/btnRoute"-->
-<!--        android:layout_alignParentEnd="true"-->
-<!--        android:layout_marginTop="8dp"-->
-<!--        android:layout_marginEnd="8dp"-->
-<!--        android:background="#00ffffff"-->
-<!--        android:contentDescription="Center map"-->
-<!--        android:cropToPadding="true"-->
-<!--        android:src="@drawable/ic_menu_mylocation" />-->
+    <TextView
+        android:id="@+id/insTextView"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:background="@color/design_default_color_background"
+        android:textAlignment="center"
+        android:textColor="@color/design_default_color_on_secondary"
+        android:textSize="20sp" />
 
     <EditText
         android:id="@+id/editRangeMax"
@@ -111,18 +127,5 @@
         android:ems="10"
         android:hint="Minimum range"
         android:inputType="numberDecimal" />
-
-    <!--    <ImageButton-->
-<!--        android:layout_width="wrap_content"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:id="@+id/enablePainting"-->
-<!--        android:src="@drawable/paintmode"-->
-<!--        android:background="#00ffffff"-->
-<!--        android:contentDescription="@string/bt_follow_me_description"-->
-<!--        android:cropToPadding="true"-->
-<!--        android:layout_below="@+id/enablePanning"-->
-<!--        android:layout_alignLeft="@+id/enablePanning"-->
-<!--        android:layout_alignStart="@+id/enablePanning"-->
-<!--        android:layout_marginTop="17dp"/>-->
 
 </RelativeLayout>

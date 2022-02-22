@@ -7,5 +7,5 @@
     <fragment
         android:id="@+id/starterMapFragment"
         android:name="com.tymwitko.bogitrip.StarterMapFragment"
-        android:label="StarterMapFragment" />
+        android:label="Bogi Trip" />
 </navigation>

@@ -41,9 +41,14 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        if (ContextCompat.checkSelfPermission(this@MainActivity,
+                permission.ACCESS_FINE_LOCATION) !=
+            PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this@MainActivity,
+                arrayOf(permission.ACCESS_FINE_LOCATION), 1)
+        }
         getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this))
-
-
+        title = "Bogi Trip"
         val binding = ActivityMainBinding.inflate(layoutInflater)
 
 
@@ -71,18 +76,18 @@ class MainActivity : AppCompatActivity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        val permissionsToRequest = ArrayList<String>()
-        var i = 0
-        while (i < grantResults.size) {
-            permissionsToRequest.add(permissions[i])
-            i++
-        }
-        if (permissionsToRequest.size > 0) {
-            ActivityCompat.requestPermissions(
-                this,
-                permissionsToRequest.toTypedArray(),
-                REQUEST_PERMISSIONS_REQUEST_CODE)
-        }
+//        val permissionsToRequest = ArrayList<String>()
+//        var i = 0
+//        while (i < grantResults.size) {
+//            permissionsToRequest.add(permissions[i])
+//            i++
+//        }
+//        if (permissionsToRequest.size > 0) {
+//            ActivityCompat.requestPermissions(
+//                this,
+//                permissionsToRequest.toTypedArray(),
+//                REQUEST_PERMISSIONS_REQUEST_CODE)
+//        }
     }
 
     override fun onStart() {
