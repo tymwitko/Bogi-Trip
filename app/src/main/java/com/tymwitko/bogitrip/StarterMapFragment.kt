@@ -7,6 +7,7 @@ import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.Point
 import android.location.*
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
@@ -18,7 +19,6 @@ import android.view.*
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
-import androidx.compose.runtime.internal.isLiveLiteralsEnabled
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -36,6 +36,7 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.util.TileSystem
 import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
+import org.osmdroid.views.Projection
 import org.osmdroid.views.overlay.*
 import org.osmdroid.views.overlay.compass.CompassOverlay
 import org.osmdroid.views.overlay.compass.InternalCompassOrientationProvider
@@ -417,6 +418,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     private fun navigate() {
         //TODO: test navigation view (rotation)
         state = STATE.NAVI
+        requireActivity().window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         map.controller.setZoom(18.0)
         myLocationOverlay.enableFollowLocation()
         myLocationOverlay.enableAutoStop = false
@@ -458,11 +460,21 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 
     private fun naviMapOrient(){
         if (road.mNodes.size > 1) {
-            val dlat =
-                (road.mNodes[1].mLocation.latitude - road.mNodes[0].mLocation.latitude).toFloat()
-            val dlong =
-                (road.mNodes[1].mLocation.longitude - road.mNodes[0].mLocation.longitude).toFloat()
-            var ori = (acos(dlong / (sqrt(dlat * dlat + dlong * dlong))) * 360f / (2f * PI.toFloat())) % 90f
+            val projection: Projection = map.getProjection()
+            val zero = Point()
+            projection.toPixels(road.mNodes[0].mLocation, zero)
+            val one = Point()
+            projection.toPixels(road.mNodes[1].mLocation, one)
+            val dlong = one.x - zero.x
+            val dlat = -one.y + zero.y
+//            val dlat =
+//                (road.mNodes[1].mLocation.latitude - road.mNodes[0].mLocation.latitude).toFloat()
+//
+//            val dlong =
+//                (road.mNodes[1].mLocation.longitude - road.mNodes[0].mLocation.longitude).toFloat()
+
+            var ori = abs(atan(dlat.toDouble() / dlong.toDouble()) * 360f / (2f * PI.toFloat())) % 90f
+            Log.d("TAG", "atan: $ori")
 //            Log.d("TAG", "0: ${road.mNodes[0].mInstructions}, 1: ${road.mNodes[1].mInstructions}")
 //            Log.d("TAG","ori: $ori, dlat: $dlat, dlong: $dlong, arg: ${dlat / (sqrt(dlat * dlat + dlong * dlong))}")
             //TODO: not sure if correct
@@ -479,9 +491,10 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                     90 + abs(ori)
                 }
             }
-//            Log.d("TAG","new ori: $ori")
+            Log.d("TAG", "Zero: ${road.mNodes[0].mLocation.latitude}, ${road.mNodes[0].mLocation.longitude}, One: ${road.mNodes[1].mLocation.latitude}, ${road.mNodes[1].mLocation.longitude}, ori: $ori")
+            Log.d("TAG", "Zero: ${zero.x}, ${zero.y}, One: ${one.x}, ${one.y}, ori: $ori")
             activity?.runOnUiThread {
-                map.mapOrientation = ori
+                map.mapOrientation = ori.toFloat()
             }
         }
     }
@@ -603,6 +616,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             insTextView.isVisible = false
             editMinRange.isVisible = true
             editMaxRange.isVisible = true
+            requireActivity().window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 //            orientationListener.disable()
         }
     }
@@ -802,7 +816,6 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                 Log.e("TTS","The Language specified is not supported!")
-                //TODO: Snackbar or force English on RoadManager
                 if (firstCreate) {
                     Toast.makeText(
                         context,
