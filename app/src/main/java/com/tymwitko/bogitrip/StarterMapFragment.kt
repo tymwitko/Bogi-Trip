@@ -105,9 +105,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         v = inflater.inflate(R.layout.fragment_starter_map, null)
 
         roadManager = OSRMRoadManager(context, context?.packageName)
-//        roadManager.addRequestOption("locale=US")
-        (roadManager as OSRMRoadManager).setMean(OSRMRoadManager.MEAN_BY_BIKE)
-//        roadManager.addRequestOption("vehicle=bike")
+        //(roadManager as OSRMRoadManager).setMean(OSRMRoadManager.MEAN_BY_BIKE)
 
         btnRandom = v.findViewById(R.id.btnRandom)
         btnRoute = v.findViewById(R.id.btnRoute)
@@ -442,11 +440,12 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                 drawRoute()
                 naviMapOrient()
                 insTextView.text = road.mNodes[1].mInstructions
-                while (i < road.mNodes.size && state == STATE.NAVI){
-                    if (abs(myLocationOverlay.myLocation.latitude - road.mNodes[i].mLocation.latitude) < 0.00005 && abs(myLocationOverlay.myLocation.latitude - road.mNodes[i].mLocation.latitude) < 0.00005) {
-                        insTextView.text = road.mNodes[i].mInstructions
-                        tts.speak(road.mNodes[i].mInstructions, TextToSpeech.QUEUE_FLUSH, null,"")
+                while (i < road.mNodes.size - 1 && state == STATE.NAVI){
+                    if (abs(myLocationOverlay.myLocation.latitude - road.mNodes[i].mLocation.latitude) < 0.0001 && abs(myLocationOverlay.myLocation.latitude - road.mNodes[i].mLocation.latitude) < 0.0001) {
+                        insTextView.text = road.mNodes[i+1].mInstructions
+                        tts.speak(road.mNodes[i+1].mInstructions, TextToSpeech.QUEUE_FLUSH, null,"")
                         i += 1
+                        drawRoute()
                         naviMapOrient()
                     }
                 }
@@ -466,6 +465,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             var ori = (acos(dlong / (sqrt(dlat * dlat + dlong * dlong))) * 360f / (2f * PI.toFloat())) % 90f
 //            Log.d("TAG", "0: ${road.mNodes[0].mInstructions}, 1: ${road.mNodes[1].mInstructions}")
 //            Log.d("TAG","ori: $ori, dlat: $dlat, dlong: $dlong, arg: ${dlat / (sqrt(dlat * dlat + dlong * dlong))}")
+            //TODO: not sure if correct
             ori = if (dlong > 0){
                 if (dlat > 0){
                     -90 + abs(ori)

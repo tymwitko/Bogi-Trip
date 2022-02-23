@@ -15,6 +15,7 @@ import android.text.method.LinkMovementMethod
 import android.util.Log
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.view.ContextThemeWrapper
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
@@ -24,15 +25,32 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.test.core.app.ApplicationProvider
 import com.tymwitko.bogitrip.databinding.ActivityMainBinding
-import org.osmdroid.config.Configuration
+//import org.osmdroid.config.Configuration
 import org.osmdroid.config.Configuration.getInstance
+import android.content.res.Configuration
+import java.util.*
 
 
 class MainActivity : AppCompatActivity() {
-//    companion object {
-//
-//    }
-    private val REQUEST_PERMISSIONS_REQUEST_CODE = 1
+    companion object {
+        var dLocale: Locale? = Locale("en")
+    }
+
+    init {
+        updateConfig()
+    }
+
+    private fun updateConfig() {
+        if(dLocale==Locale("") ) // Do nothing if dLocale is null
+            return
+
+        Locale.setDefault(dLocale!!)
+        val configuration = Configuration()
+        configuration.setLocale(dLocale)
+        applyOverrideConfiguration(configuration)
+    }
+
+//    private val REQUEST_PERMISSIONS_REQUEST_CODE = 1
     val TAG = "TAG"
 //    private lateinit var map : MapView
 
@@ -58,6 +76,10 @@ class MainActivity : AppCompatActivity() {
         navController = navHostFragment.navController
         // Make sure actions in the ActionBar get propagated to the NavController
         setupActionBarWithNavController(navController)
+
+        val change = "en"
+
+        dLocale = Locale(change)
 
 
         setContentView(binding.root)
