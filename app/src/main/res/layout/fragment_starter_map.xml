@@ -17,7 +17,7 @@
         android:id="@+id/btnRandom"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
+        android:layout_below="@+id/editRangeMax"
         android:layout_alignParentEnd="true"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="8dp"
@@ -25,6 +25,16 @@
         android:minHeight="51dp"
         android:src="@android:drawable/ic_menu_search"
         android:background="#6200EA" />
+
+    <TextView
+        android:id="@+id/centerer"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:visibility="invisible"
+        android:gravity="center"
+        android:text="" />
 
     <ImageButton
         android:id="@+id/btnQuitNavi"
@@ -71,7 +81,7 @@
         android:layout_height="56dp"
         android:layout_below="@+id/editRangeMin"
         android:layout_alignParentStart="true"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         android:layout_marginStart="8dp"
         android:background="?attr/selectableItemBackground"
         android:minWidth="32dp"
@@ -108,7 +118,8 @@
         android:layout_alignParentTop="true"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="8dp"
-        android:layout_toStartOf="@+id/btnRandom"
+        android:layout_alignParentEnd="true"
+        android:layout_toEndOf="@+id/centerer"
         android:ems="10"
         android:hint="Maximum range"
         android:inputType="numberDecimal" />
@@ -123,7 +134,7 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="8dp"
-        android:layout_toStartOf="@+id/editRangeMax"
+        android:layout_toStartOf="@+id/centerer"
         android:ems="10"
         android:hint="Minimum range"
         android:inputType="numberDecimal" />

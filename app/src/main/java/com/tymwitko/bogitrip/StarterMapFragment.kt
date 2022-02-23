@@ -18,6 +18,7 @@ import android.view.*
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.compose.runtime.internal.isLiveLiteralsEnabled
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -85,6 +86,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     private var lastLocLong: Double = 200.0
     private var isLocation = false
     private var state = STATE.INIT
+    private var firstCreate = true
     private lateinit var tts: TextToSpeech
 //    private lateinit var orientationListener: OrientationEventListener
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -213,10 +215,10 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                 lastLocLat = location.latitude
                 lastLocLong = location.longitude
                 isLocation = true
-                if(state == STATE.NAVI){
-                    drawRoute()
-//                    map.mapOrientation = -compassOverlay.orientation
-                }
+//                if(state == STATE.NAVI){
+//                    drawRoute()
+////                    map.mapOrientation = -compassOverlay.orientation
+//                }
             }
 
             override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {
@@ -314,6 +316,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                     }
                 } catch (e: java.lang.IllegalArgumentException) {
                     Toast.makeText(context, R.string.TOAST_EDGE, Toast.LENGTH_SHORT).show()
+                    Log.d("TAG", "Range: $minRange")
                 }
 
             }
@@ -339,6 +342,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                     }
                 } catch (e: java.lang.IllegalArgumentException) {
                     Toast.makeText(context, R.string.TOAST_EDGE, Toast.LENGTH_SHORT).show()
+                    Log.d("TAG", "Range: $maxRange, Location: $isLocation, $lastLocLong, $lastLocLat")
                 }
             }
             override fun afterTextChanged(s: Editable) {
@@ -346,7 +350,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         })
         map.controller.setZoom(6.0)
 
-        tts = TextToSpeech(context, this)
+
 
         if (savedInstanceState != null){
             map.controller.setZoom(savedInstanceState.getFloat("ZOOM").toDouble())
@@ -356,6 +360,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             lastLocLat = savedInstanceState.getFloat("LOC_LAT").toDouble()
             lastLocLong = savedInstanceState.getFloat("LOC_LONG").toDouble()
             state = savedInstanceState.getSerializable("STATE") as STATE
+            firstCreate = savedInstanceState.getBoolean("FIRST")
 
             //recovering random waypoint
             if (state != STATE.INIT) {
@@ -407,6 +412,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                 }
             }
         }
+        tts = TextToSpeech(context, this)
         return v
     }
 
@@ -433,6 +439,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         var i = 0
         val insThread = Thread{
             try {
+                drawRoute()
                 naviMapOrient()
                 insTextView.text = road.mNodes[1].mInstructions
                 while (i < road.mNodes.size && state == STATE.NAVI){
@@ -511,17 +518,21 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         Log.d("TAG", "onSaveInstanceState called")
-        try {
+        if (myLocationOverlay.myLocation != null){
+            outState.putFloat("LOC_LAT", myLocationOverlay.myLocation.latitude.toFloat())
+            outState.putFloat("LOC_LONG", myLocationOverlay.myLocation.longitude.toFloat())
+        }else {
             outState.putFloat("LOC_LAT", lastLocLat.toFloat())
             outState.putFloat("LOC_LONG", lastLocLong.toFloat())
-            Log.d("TAG", "$lastLocLat, $lastLocLong")
-        } catch (e: java.lang.NullPointerException){}
+        }
+        Log.d("TAG", "$lastLocLat, $lastLocLong")
         outState.putFloat("CENTER_LAT", map.mapCenter.latitude.toFloat())
         outState.putFloat("CENTER_LONG", map.mapCenter.longitude.toFloat())
         outState.putFloat("ZOOM", map.zoomLevelDouble.toFloat())
         outState.putFloat("ORIENTATION", map.mapOrientation)
         outState.putBoolean("IS_LOC", isLocation)
         outState.putSerializable("STATE", state)
+        outState.putBoolean("FIRST", firstCreate)
         if(state != STATE.INIT) {
             outState.putFloat("RAND_LAT", randomOverlay.getItem(0).point.latitude.toFloat())
             outState.putFloat("RAND_LONG", randomOverlay.getItem(0).point.longitude.toFloat())
@@ -535,14 +546,6 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
          *
          * @return A new instance of fragment StarterMapFragment.
          */
-//        @JvmStatic
-//        fun newInstance(param1: String, param2: String) =
-//            StarterMapFragment().apply {
-//                arguments = Bundle().apply {
-//                    putString(ARG_PARAM1, param1)
-//                    putString(ARG_PARAM2, param2)
-//                }
-//            }
     }
 
     override fun onClick(p0: View?) {
@@ -614,13 +617,14 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             map.overlays.remove(roadOverlay)
         }
 
+        if(myLocationOverlay.myLocation != null){
+            lastLocLat = myLocationOverlay.myLocation.latitude
+            lastLocLong = myLocationOverlay.myLocation.longitude
+        }
+
         val thread = Thread {
             try {
                 val waypoints = ArrayList<GeoPoint>()
-                if(myLocationOverlay.myLocation != null){
-                    lastLocLat = myLocationOverlay.myLocation.latitude
-                    lastLocLong = myLocationOverlay.myLocation.longitude
-                }
                 waypoints.add(GeoPoint(lastLocLat, lastLocLong))
                 val endPoint = GeoPoint(randomOverlay.getItem(0).point.latitude, randomOverlay.getItem(0).point.longitude)
                 waypoints.add(endPoint)
@@ -639,19 +643,21 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                 if (road.mStatus == Road.STATUS_OK){
                     map.overlays.add(roadOverlay)
                 }else{
-                    requireActivity().runOnUiThread(Runnable() {
-                        Toast.makeText(context, "Routing failed!", Toast.LENGTH_SHORT).show()
-                    })
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(context, getString(R.string.ROUTING_FAILED), Toast.LENGTH_SHORT).show()
+                    }
                 }
 
             } catch (e: Exception) {
                 Log.d("TAG", e.toString())
-                Toast.makeText(context, "Routing failed!", Toast.LENGTH_SHORT).show()
+                requireActivity().runOnUiThread {
+                    Toast.makeText(context, getString(R.string.ROUTING_FAILED), Toast.LENGTH_SHORT).show()
+                }
             }
         }
         thread.start()
         map.invalidate()
-        if (state == STATE.NAVI){
+        if (state == STATE.NAVI && this::road.isInitialized){
             naviMapOrient()
         }
     }
@@ -660,6 +666,9 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         var loc = myLocationOverlay.myLocation
         if(loc == null){
             loc = GeoPoint(lastLocLat, lastLocLong)
+        }else{
+            lastLocLat = loc.latitude
+            lastLocLong = loc.longitude
         }
         if (this::pmin.isInitialized && pmin in map.overlays) {
             map.overlays.remove(pmin)
@@ -793,12 +802,18 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                 Log.e("TTS","The Language specified is not supported!")
-            } else {
-//                buttonSpeak!!.isEnabled = true
+                //TODO: Snackbar or force English on RoadManager
+                if (firstCreate) {
+                    Toast.makeText(
+                        context,
+                        "TTS won't work with your language!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    firstCreate = false
+                }
             }
-
         } else {
-            Log.e("TTS", "Initilization Failed!")
+            Log.e("TTS", "Initialization Failed!")
         }
     }
 }
