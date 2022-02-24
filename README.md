@@ -11,4 +11,5 @@ Android app for randomizing the trip destination within selected distance. Inspi
 
 
 ## Known issues:
-- rotation might not be updated during navigation (to test)
+- navigation might not be updated correctly (to test)
+- OSRM Server unresponsive at times (TODO: fix by switching to own API)

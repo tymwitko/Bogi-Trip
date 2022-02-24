@@ -87,7 +87,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     private var lastLocLong: Double = 200.0
     private var isLocation = false
     private var state = STATE.INIT
-    private var firstCreate = true
+//    private var firstCreate = true
     private lateinit var tts: TextToSpeech
 //    private lateinit var orientationListener: OrientationEventListener
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -107,6 +107,8 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 
         roadManager = OSRMRoadManager(context, context?.packageName)
         //(roadManager as OSRMRoadManager).setMean(OSRMRoadManager.MEAN_BY_BIKE)
+        //TODO: get a real link
+//        (roadManager as OSRMRoadManager).setService("https://api.openrouteservice.org/v2/directions/driving-car/geojson?api_key=5b3ce3597851110001cf6248cd9a342bec284d8db5e8f4ecd2faa6a9")
 
         btnRandom = v.findViewById(R.id.btnRandom)
         btnRoute = v.findViewById(R.id.btnRoute)
@@ -115,7 +117,6 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         btnNavi = v.findViewById(R.id.btnNavi)
         btnQuitNavi = v.findViewById(R.id.btnQuitNavi)
         insTextView = v.findViewById(R.id.insTextView)
-        Log.d("TAG", "2131230983, ${R.id.mapview}")
 
         btnRandom.setOnClickListener(this)
         btnRoute.setOnClickListener(this)
@@ -233,25 +234,6 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             }
         }
 
-//        orientationListener =
-//            object : OrientationEventListener(context, SensorManager.SENSOR_DELAY_UI) {
-//                override fun onOrientationChanged(p0: Int) {
-//                    if (p0 != -1) {
-//                        //System.out.println("compass " + orientation);
-//                        //System.out.println("deviceOrientation " + deviceOrientation);
-//                        //this part adjusts the desired map rotation based on device orientation and compass heading
-////                        var t: Float = 360f - p0.toFloat() - compassOverlay.orientation
-////                        if (t < 0) t += 360f
-////                        if (t > 360) t -= 360f
-////                        var t = -p0
-//                        //System.out.println("screen heading to " + t);
-//                        map.mapOrientation = 360f - p0.toFloat()
-//                        Log.d("TAG", "wejszlem w sluchacza orientu, $p0")
-//                    }
-//                }
-//            }
-
-        // Register the listener with the Location Manager to receive location updates
 
         // Register the listener with the Location Manager to receive location updates
         if (ContextCompat.checkSelfPermission(
@@ -315,7 +297,6 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                     }
                 } catch (e: java.lang.IllegalArgumentException) {
                     Toast.makeText(context, R.string.TOAST_EDGE, Toast.LENGTH_SHORT).show()
-                    Log.d("TAG", "Range: $minRange")
                 }
 
             }
@@ -341,7 +322,6 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                     }
                 } catch (e: java.lang.IllegalArgumentException) {
                     Toast.makeText(context, R.string.TOAST_EDGE, Toast.LENGTH_SHORT).show()
-                    Log.d("TAG", "Range: $maxRange, Location: $isLocation, $lastLocLong, $lastLocLat")
                 }
             }
             override fun afterTextChanged(s: Editable) {
@@ -359,8 +339,10 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             lastLocLat = savedInstanceState.getFloat("LOC_LAT").toDouble()
             lastLocLong = savedInstanceState.getFloat("LOC_LONG").toDouble()
             state = savedInstanceState.getSerializable("STATE") as STATE
-            firstCreate = savedInstanceState.getBoolean("FIRST")
-
+//            firstCreate = savedInstanceState.getBoolean("FIRST")
+            if (state == STATE.NAVI || state == STATE.ROUTE) {
+                road = savedInstanceState.getParcelable<Road>("ROAD")!!
+            }
             //recovering random waypoint
             if (state != STATE.INIT) {
                 items.add(
@@ -416,37 +398,29 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     }
 
     private fun navigate() {
-        //TODO: test navigation view (rotation)
         state = STATE.NAVI
         requireActivity().window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         map.controller.setZoom(18.0)
         myLocationOverlay.enableFollowLocation()
         myLocationOverlay.enableAutoStop = false
-//        val orientThread = Thread {
-//            try {
-//                while (state == STATE.NAVI) {
-//                    activity?.runOnUiThread {
-//                        map.mapOrientation = -compassOverlay.orientation
-//                    }
-//                }
-//            } catch (e: Exception) {
-//                Log.d("TAG", "Error while orienting $e")
-//            }
-//        }
-//        orientThread.start()
-//        orientationListener.enable()
 
-        var i = 0
+        var i = 1
         val insThread = Thread{
             try {
                 drawRoute()
                 naviMapOrient()
                 insTextView.text = road.mNodes[1].mInstructions
-                while (i < road.mNodes.size - 1 && state == STATE.NAVI){
-                    if (abs(myLocationOverlay.myLocation.latitude - road.mNodes[i].mLocation.latitude) < 0.0001 && abs(myLocationOverlay.myLocation.latitude - road.mNodes[i].mLocation.latitude) < 0.0001) {
-                        insTextView.text = road.mNodes[i+1].mInstructions
+                Log.d("TAG", "mInstructions: ${road.mNodes[0].mInstructions}, ${road.mNodes[1].mInstructions}, ${road.mNodes[2].mInstructions}")
+                if (!this::tts.isInitialized){
+                    tts = TextToSpeech(context, this)
+                }
+                tts.speak(road.mNodes[1].mInstructions, TextToSpeech.QUEUE_FLUSH, null,"")
+//                while (i < road.mNodes.size - 1 && state == STATE.NAVI){
+                while (state == STATE.NAVI){
+                    if (abs(lastLocLat - road.mNodes[i].mLocation.latitude) < 0.0001 && abs(lastLocLong - road.mNodes[i].mLocation.longitude) < 0.0001) {
+                        insTextView.text = road.mNodes[i + 1].mInstructions
                         tts.speak(road.mNodes[i+1].mInstructions, TextToSpeech.QUEUE_FLUSH, null,"")
-                        i += 1
+//                        i += 1
                         drawRoute()
                         naviMapOrient()
                     }
@@ -459,42 +433,39 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     }
 
     private fun naviMapOrient(){
-        if (road.mNodes.size > 1) {
-            val projection: Projection = map.getProjection()
-            val zero = Point()
-            projection.toPixels(road.mNodes[0].mLocation, zero)
-            val one = Point()
-            projection.toPixels(road.mNodes[1].mLocation, one)
-            val dlong = one.x - zero.x
-            val dlat = -one.y + zero.y
+        if (this::road.isInitialized) {
+            if (road.mNodes.size > 1) {
+                val projection: Projection = map.getProjection()
+                val zero = Point()
+                projection.toPixels(road.mNodes[0].mLocation, zero)
+                val one = Point()
+                projection.toPixels(road.mNodes[1].mLocation, one)
+                val dlong = one.x - zero.x
+                val dlat = -one.y + zero.y
 //            val dlat =
 //                (road.mNodes[1].mLocation.latitude - road.mNodes[0].mLocation.latitude).toFloat()
 //
 //            val dlong =
 //                (road.mNodes[1].mLocation.longitude - road.mNodes[0].mLocation.longitude).toFloat()
 
-            var ori = abs(atan(dlat.toDouble() / dlong.toDouble()) * 360f / (2f * PI.toFloat())) % 90f
-            Log.d("TAG", "atan: $ori")
-//            Log.d("TAG", "0: ${road.mNodes[0].mInstructions}, 1: ${road.mNodes[1].mInstructions}")
-//            Log.d("TAG","ori: $ori, dlat: $dlat, dlong: $dlong, arg: ${dlat / (sqrt(dlat * dlat + dlong * dlong))}")
-            //TODO: not sure if correct
-            ori = if (dlong > 0){
-                if (dlat > 0){
-                    -90 + abs(ori)
-                }else{
-                    -90 - abs(ori)
+                var ori =
+                    abs(atan(dlat.toDouble() / dlong.toDouble()) * 360f / (2f * PI.toFloat())) % 90f
+                ori = if (dlong > 0) {
+                    if (dlat > 0) {
+                        -90 + abs(ori)
+                    } else {
+                        -90 - abs(ori)
+                    }
+                } else {
+                    if (dlat > 0) {
+                        90 - abs(ori)
+                    } else {
+                        90 + abs(ori)
+                    }
                 }
-            }else{
-                if (dlat > 0){
-                    90 - abs(ori)
-                }else{
-                    90 + abs(ori)
+                activity?.runOnUiThread {
+                    map.mapOrientation = ori.toFloat()
                 }
-            }
-            Log.d("TAG", "Zero: ${road.mNodes[0].mLocation.latitude}, ${road.mNodes[0].mLocation.longitude}, One: ${road.mNodes[1].mLocation.latitude}, ${road.mNodes[1].mLocation.longitude}, ori: $ori")
-            Log.d("TAG", "Zero: ${zero.x}, ${zero.y}, One: ${one.x}, ${one.y}, ori: $ori")
-            activity?.runOnUiThread {
-                map.mapOrientation = ori.toFloat()
             }
         }
     }
@@ -538,14 +509,16 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             outState.putFloat("LOC_LAT", lastLocLat.toFloat())
             outState.putFloat("LOC_LONG", lastLocLong.toFloat())
         }
-        Log.d("TAG", "$lastLocLat, $lastLocLong")
         outState.putFloat("CENTER_LAT", map.mapCenter.latitude.toFloat())
         outState.putFloat("CENTER_LONG", map.mapCenter.longitude.toFloat())
         outState.putFloat("ZOOM", map.zoomLevelDouble.toFloat())
         outState.putFloat("ORIENTATION", map.mapOrientation)
         outState.putBoolean("IS_LOC", isLocation)
         outState.putSerializable("STATE", state)
-        outState.putBoolean("FIRST", firstCreate)
+//        outState.putBoolean("FIRST", firstCreate)
+        if (state == STATE.NAVI || state == STATE.ROUTE) {
+            outState.putParcelable("ROAD", road)
+        }
         if(state != STATE.INIT) {
             outState.putFloat("RAND_LAT", randomOverlay.getItem(0).point.latitude.toFloat())
             outState.putFloat("RAND_LONG", randomOverlay.getItem(0).point.longitude.toFloat())
@@ -619,6 +592,18 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             requireActivity().window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 //            orientationListener.disable()
         }
+        //TODO: btnBug
+//        if (p0 == v.findViewById(R.id.btnBug)){
+//            val emailIntent = Intent(Intent.ACTION_SEND)
+//            emailIntent.type = "text/plain"
+//            emailIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf("osmdroidbugs@gmail.com"))
+//            emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Open Map crash log")
+//            emailIntent.putExtra(Intent.EXTRA_TEXT, "Log data")
+//
+//            val uri: Uri = Uri.fromFile(file)
+//            emailIntent.putExtra(Intent.EXTRA_STREAM, uri)
+//            startActivity(Intent.createChooser(emailIntent, "Pick an Email provider"))
+//        }
     }
 
     private fun drawRoute(){
@@ -647,24 +632,18 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                     map.overlays.remove(roadOverlay)
                 }
                 roadOverlay = RoadManager.buildRoadOverlay(road)
-//                if (state == STATE.NAVI){
-//                    for (overlay in map.overlays){
-//                        if (overlay is Polyline){
-//                            map.overlays.remove(overlay)
-//                        }
-//                    }
-//                }
                 if (road.mStatus == Road.STATUS_OK){
                     map.overlays.add(roadOverlay)
                 }else{
-                    requireActivity().runOnUiThread {
+                    Log.d("TAG", "${road.mStatus}, ${Road.STATUS_INVALID}, ${Road.STATUS_TECHNICAL_ISSUE}")
+                    activity?.runOnUiThread {
                         Toast.makeText(context, getString(R.string.ROUTING_FAILED), Toast.LENGTH_SHORT).show()
                     }
                 }
 
             } catch (e: Exception) {
                 Log.d("TAG", e.toString())
-                requireActivity().runOnUiThread {
+                activity?.runOnUiThread {
                     Toast.makeText(context, getString(R.string.ROUTING_FAILED), Toast.LENGTH_SHORT).show()
                 }
             }
@@ -816,14 +795,9 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                 Log.e("TTS","The Language specified is not supported!")
-                if (firstCreate) {
-                    Toast.makeText(
-                        context,
-                        "TTS won't work with your language!",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    firstCreate = false
-                }
+//                if (firstCreate) {
+//                    firstCreate = false
+//                }
             }
         } else {
             Log.e("TTS", "Initialization Failed!")
