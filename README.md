@@ -12,4 +12,3 @@ Android app for randomizing the trip destination within selected distance. Inspi
 
 ## Known issues:
 - navigation not updating after going off route
-- sometimes you need to calculate route twice (initial calculation)
