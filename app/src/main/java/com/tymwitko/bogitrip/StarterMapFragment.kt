@@ -2,6 +2,7 @@ package com.tymwitko.bogitrip
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Bitmap
@@ -9,6 +10,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Point
 import android.location.*
+import android.net.Uri
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.text.Editable
@@ -23,6 +25,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import org.osmdroid.api.IMapView
+import org.osmdroid.bonuspack.routing.MapQuestRoadManager
 import org.osmdroid.bonuspack.routing.OSRMRoadManager
 import org.osmdroid.bonuspack.routing.Road
 import org.osmdroid.bonuspack.routing.RoadManager
@@ -78,7 +81,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     private lateinit var btnOrient: View
     private lateinit var btnRandom: View
     private lateinit var insTextView: TextView
-    private lateinit var compassOverlay: CompassOverlay
+//    private lateinit var compassOverlay: CompassOverlay
     private lateinit var road: Road
     private lateinit var editMinRange: EditText
     private lateinit var editMaxRange: EditText
@@ -92,8 +95,26 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 //    private lateinit var orientationListener: OrientationEventListener
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)
         Configuration.getInstance().userAgentValue = context?.packageName
         //important! set your user agent to prevent getting banned from the osm servers
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        super.onCreateOptionsMenu(menu, inflater)
+        inflater.inflate(R.menu.map_fragment_menu, menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.shareMenuButton -> onBugReport()
+        }
+        return false
+    }
+
+    private fun onBugReport(){
+        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/tymwitko/Bogi-Trip/issues/new?assignees=&labels=&template=bug_report.md&title="))
+        startActivity(browserIntent)
     }
 
     override fun onCreateView(
@@ -106,9 +127,9 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         v = inflater.inflate(R.layout.fragment_starter_map, null)
 
         roadManager = OSRMRoadManager(context, context?.packageName)
-        //(roadManager as OSRMRoadManager).setMean(OSRMRoadManager.MEAN_BY_BIKE)
-        //TODO: get a real link
-//        (roadManager as OSRMRoadManager).setService("https://api.openrouteservice.org/v2/directions/driving-car/geojson?api_key=5b3ce3597851110001cf6248cd9a342bec284d8db5e8f4ecd2faa6a9")
+        //TODO: return to main account on March 1st
+        roadManager = MapQuestRoadManager("rD8hJ3s4WMEmsUoAJHicnUq9zfG9kF9R")
+//        roadManager = MapQuestRoadManager("WUU0Lobo2JV4h1aOMRb9UXLGrXq1uRbN")
 
         btnRandom = v.findViewById(R.id.btnRandom)
         btnRoute = v.findViewById(R.id.btnRoute)
@@ -138,7 +159,6 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         editMaxRange.setTextColor(ColorStateList.valueOf(Color.BLUE))
         editMinRange.setHintTextColor(ColorStateList.valueOf(Color.MAGENTA))
         editMaxRange.setHintTextColor(ColorStateList.valueOf(Color.BLUE))
-//        editMinRange.doAfter
 
         map = v.findViewById<View>(R.id.mapview) as MapView
         map.addMapListener(object : MapListener {
@@ -147,7 +167,6 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                     IMapView.LOGTAG,
                     System.currentTimeMillis().toString() + " onScroll " + event.x + "," + event.y
                 )
-                //Toast.makeText(getActivity(), "onScroll", Toast.LENGTH_SHORT).show();
                 return true
             }
 
@@ -179,8 +198,8 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         copyrightOverlay.setAlignRight(true)
         map.overlays.add(copyrightOverlay)
 
-        compassOverlay = CompassOverlay(context, InternalCompassOrientationProvider(context), map)
-        compassOverlay.enableCompass()
+//        compassOverlay = CompassOverlay(context, InternalCompassOrientationProvider(context), map)
+//        compassOverlay.enableCompass()
 //        map.overlays.add(compassOverlay)
 
 
@@ -341,7 +360,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             state = savedInstanceState.getSerializable("STATE") as STATE
 //            firstCreate = savedInstanceState.getBoolean("FIRST")
             if (state == STATE.NAVI || state == STATE.ROUTE) {
-                road = savedInstanceState.getParcelable<Road>("ROAD")!!
+                road = savedInstanceState.getParcelable("ROAD")!!
             }
             //recovering random waypoint
             if (state != STATE.INIT) {
@@ -376,7 +395,8 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             }
 
             if ((state == STATE.ROUTE || state == STATE.NAVI) && isLocation) {
-                drawRoute()
+                roadOverlay = RoadManager.buildRoadOverlay(road)
+                map.overlays.add(roadOverlay)
                 btnRoute.isVisible = false
                 if (state == STATE.ROUTE){
                     btnNavi.isVisible = true
@@ -398,58 +418,69 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     }
 
     private fun navigate() {
-        state = STATE.NAVI
-        requireActivity().window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        map.controller.setZoom(18.0)
-        myLocationOverlay.enableFollowLocation()
-        myLocationOverlay.enableAutoStop = false
+        if (road.mStatus == Road.STATUS_OK) {
+            state = STATE.NAVI
+            requireActivity().window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            map.controller.setZoom(18.0)
+            myLocationOverlay.enableFollowLocation()
+            myLocationOverlay.enableAutoStop = false
 
-        var i = 1
-        val insThread = Thread{
-            try {
-                drawRoute()
-                naviMapOrient()
-                insTextView.text = road.mNodes[1].mInstructions
-                Log.d("TAG", "mInstructions: ${road.mNodes[0].mInstructions}, ${road.mNodes[1].mInstructions}, ${road.mNodes[2].mInstructions}")
-                if (!this::tts.isInitialized){
-                    tts = TextToSpeech(context, this)
-                }
-                tts.speak(road.mNodes[1].mInstructions, TextToSpeech.QUEUE_FLUSH, null,"")
-//                while (i < road.mNodes.size - 1 && state == STATE.NAVI){
-                while (state == STATE.NAVI){
-                    if (abs(lastLocLat - road.mNodes[i].mLocation.latitude) < 0.0001 && abs(lastLocLong - road.mNodes[i].mLocation.longitude) < 0.0001) {
-                        insTextView.text = road.mNodes[i + 1].mInstructions
-                        tts.speak(road.mNodes[i+1].mInstructions, TextToSpeech.QUEUE_FLUSH, null,"")
-//                        i += 1
-                        drawRoute()
-                        naviMapOrient()
+            var i = 1
+            val insThread = Thread {
+                try {
+                    naviMapOrient()
+                    insTextView.text = road.mNodes[1].mInstructions
+                    Log.d("TAG", "mInstructions: ${road.mNodes[0].mInstructions}, ${road.mNodes[1].mInstructions}, ${road.mNodes[2].mInstructions}")
+                    if (!this::tts.isInitialized) {
+                        tts = TextToSpeech(context, this)
                     }
+                    tts.speak(road.mNodes[1].mInstructions, TextToSpeech.QUEUE_FLUSH, null, "")
+    //                while (i < road.mNodes.size - 1 && state == STATE.NAVI){
+                    while (state == STATE.NAVI) {
+                        try {
+                            if (abs(lastLocLat - road.mNodes[i].mLocation.latitude) < 0.0001 && abs(
+                                    lastLocLong - road.mNodes[i].mLocation.longitude
+                                ) < 0.0001) {
+                                insTextView.text = road.mNodes[i + 1].mInstructions
+                                tts.speak(
+                                    road.mNodes[i + 1].mInstructions,
+                                    TextToSpeech.QUEUE_FLUSH,
+                                    null,
+                                    ""
+                                )
+                                naviMapOrient(i)
+                                i += 1
+                            }
+                        }
+                        catch (e: java.lang.IndexOutOfBoundsException){
+                            insTextView.text = road.mNodes[i].mInstructions
+                            tts.speak(
+                                road.mNodes[i].mInstructions,
+                                TextToSpeech.QUEUE_FLUSH,
+                                null,
+                                ""
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.d("TAG", "ERROR while instructing $e")
                 }
-            } catch (e: Exception) {
-                Log.d("TAG", "ERROR while instructing $e")
             }
+            insThread.start()
         }
-        insThread.start()
     }
 
-    private fun naviMapOrient(){
+    private fun naviMapOrient(i: Int = 0){
         if (this::road.isInitialized) {
-            if (road.mNodes.size > 1) {
-                val projection: Projection = map.getProjection()
+            if (road.mNodes.size > i) {
+                val projection: Projection = map.projection
                 val zero = Point()
-                projection.toPixels(road.mNodes[0].mLocation, zero)
+                projection.toPixels(road.mNodes[i].mLocation, zero)
                 val one = Point()
-                projection.toPixels(road.mNodes[1].mLocation, one)
+                projection.toPixels(road.mNodes[i+1].mLocation, one)
                 val dlong = one.x - zero.x
                 val dlat = -one.y + zero.y
-//            val dlat =
-//                (road.mNodes[1].mLocation.latitude - road.mNodes[0].mLocation.latitude).toFloat()
-//
-//            val dlong =
-//                (road.mNodes[1].mLocation.longitude - road.mNodes[0].mLocation.longitude).toFloat()
-
-                var ori =
-                    abs(atan(dlat.toDouble() / dlong.toDouble()) * 360f / (2f * PI.toFloat())) % 90f
+                var ori = abs(atan(dlat.toDouble() / dlong.toDouble()) * 360f / (2f * PI.toFloat())) % 90f
                 ori = if (dlong > 0) {
                     if (dlat > 0) {
                         -90 + abs(ori)
@@ -548,8 +579,10 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         if (p0 == v.findViewById(R.id.btnRoute)){
             if (this::randomOverlay.isInitialized && isLocation) {
                 drawRoute()
-                btnRoute.isVisible = false
-                btnNavi.isVisible = true
+                if (state == STATE.ROUTE) {
+                    btnRoute.isVisible = false
+                    btnNavi.isVisible = true
+                }
             }
             else if(!this::randomOverlay.isInitialized){
                 Toast.makeText(context, "No destination selected!", Toast.LENGTH_SHORT).show()
@@ -589,15 +622,15 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             insTextView.isVisible = false
             editMinRange.isVisible = true
             editMaxRange.isVisible = true
-            requireActivity().window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            requireActivity().window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 //            orientationListener.disable()
         }
         //TODO: btnBug
 //        if (p0 == v.findViewById(R.id.btnBug)){
 //            val emailIntent = Intent(Intent.ACTION_SEND)
 //            emailIntent.type = "text/plain"
-//            emailIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf("osmdroidbugs@gmail.com"))
-//            emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Open Map crash log")
+//            emailIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf("INSERT_MAIL_HERE"))
+//            emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Bogi Trip bug report")
 //            emailIntent.putExtra(Intent.EXTRA_TEXT, "Log data")
 //
 //            val uri: Uri = Uri.fromFile(file)
@@ -608,7 +641,6 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 
     private fun drawRoute(){
         if (state != STATE.NAVI) {
-            state = STATE.ROUTE
             Toast.makeText(context, "Calculating route...", Toast.LENGTH_SHORT).show()
         }
 
@@ -633,12 +665,26 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                 }
                 roadOverlay = RoadManager.buildRoadOverlay(road)
                 if (road.mStatus == Road.STATUS_OK){
-                    map.overlays.add(roadOverlay)
+                    activity?.runOnUiThread {
+                        map.overlays.add(roadOverlay)
+                        if (state == STATE.ROUTE) {
+                            btnRoute.isVisible = false
+                            btnNavi.isVisible = true
+                        }
+                    }
                 }else{
                     Log.d("TAG", "${road.mStatus}, ${Road.STATUS_INVALID}, ${Road.STATUS_TECHNICAL_ISSUE}")
                     activity?.runOnUiThread {
                         Toast.makeText(context, getString(R.string.ROUTING_FAILED), Toast.LENGTH_SHORT).show()
                     }
+                }
+                if (state == STATE.POINT){
+                    if(this::roadOverlay.isInitialized){
+                        map.overlays.remove(roadOverlay)
+                    }
+                }
+                if (state != STATE.NAVI) {
+                    state = STATE.ROUTE
                 }
 
             } catch (e: Exception) {
@@ -690,7 +736,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 //        }
         pmin = Polygon(map)
         pmin.infoWindow = null
-        pmin.setStrokeColor(Color.MAGENTA)
+        pmin.strokeColor = Color.MAGENTA
         pmin.points = circle
 //        pmin.title = getString(R.string.MIN_RANGE)
         map.overlays.add(pmin)
@@ -729,14 +775,16 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
 //        }
         pmax = Polygon(map)
         pmax.infoWindow = null
-        pmax.setStrokeColor(Color.BLUE)
+        pmax.strokeColor = Color.BLUE
         pmax.points = circle
-//        pmax.title = getString(R.string.MAX_RANGE)
         map.overlays.add(pmax)
         map.invalidate()
     }
 
     private fun generateRandom(minRangeArg: Double, maxRangeArg: Double) {
+        if(this::roadOverlay.isInitialized){
+            map.overlays.remove(roadOverlay)
+        }
         val minR = minRangeArg * 1000
         val maxR = maxRangeArg * 1000
         if (maxR >= minR && maxR > 0 && minR >= 0) {
