@@ -18,9 +18,7 @@ import android.text.TextWatcher
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.*
-import android.widget.EditText
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -41,12 +39,11 @@ import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
 import org.osmdroid.views.Projection
 import org.osmdroid.views.overlay.*
-import org.osmdroid.views.overlay.compass.CompassOverlay
-import org.osmdroid.views.overlay.compass.InternalCompassOrientationProvider
 import org.osmdroid.views.overlay.gestures.RotationGestureOverlay
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.*
 import kotlin.random.Random
 
@@ -90,6 +87,11 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
     private var lastLocLong: Double = 200.0
     private var isLocation = false
     private var state = STATE.INIT
+    private var step = 1
+    //TODO: make one Thread for all navigation instances?
+    private var insThread: Thread? = null
+    private val insRunning: AtomicBoolean = AtomicBoolean(false)
+    private lateinit var btnRefresh: ImageButton
 //    private var firstCreate = true
     private lateinit var tts: TextToSpeech
 //    private lateinit var orientationListener: OrientationEventListener
@@ -127,9 +129,8 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         v = inflater.inflate(R.layout.fragment_starter_map, null)
 
         roadManager = OSRMRoadManager(context, context?.packageName)
-        //TODO: return to main account on March 1st
-        roadManager = MapQuestRoadManager("rD8hJ3s4WMEmsUoAJHicnUq9zfG9kF9R")
 //        roadManager = MapQuestRoadManager("WUU0Lobo2JV4h1aOMRb9UXLGrXq1uRbN")
+        roadManager = MapQuestRoadManager("rD8hJ3s4WMEmsUoAJHicnUq9zfG9kF9R")
 
         btnRandom = v.findViewById(R.id.btnRandom)
         btnRoute = v.findViewById(R.id.btnRoute)
@@ -137,6 +138,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         btnOrient = v.findViewById(R.id.btnOrient)
         btnNavi = v.findViewById(R.id.btnNavi)
         btnQuitNavi = v.findViewById(R.id.btnQuitNavi)
+        btnRefresh = v.findViewById(R.id.btnRefresh)
         insTextView = v.findViewById(R.id.insTextView)
 
         btnRandom.setOnClickListener(this)
@@ -145,9 +147,11 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         btnOrient.setOnClickListener(this)
         btnNavi.setOnClickListener(this)
         btnQuitNavi.setOnClickListener(this)
+        btnRefresh.setOnClickListener(this)
 
         btnNavi.isVisible = false
         btnQuitNavi.isVisible = false
+        btnRefresh.isVisible = false
         insTextView.isVisible = false
 
         editMinRange = v.findViewById<View>(R.id.editRangeMin) as EditText
@@ -234,10 +238,15 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                 lastLocLat = location.latitude
                 lastLocLong = location.longitude
                 isLocation = true
-//                if(state == STATE.NAVI){
-//                    drawRoute()
-////                    map.mapOrientation = -compassOverlay.orientation
-//                }
+                if(state == STATE.NAVI){
+//                    if (!roadOverlay.isCloseTo(GeoPoint(lastLocLat, lastLocLong), 300.0, map)) {
+//                        state = STATE.ROUTE
+//                        insRunning.set(false)
+//                        drawRoute()
+//                        state = STATE.NAVI
+//                        navigate()
+//                    }
+                }
             }
 
             override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {
@@ -284,12 +293,12 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             org.osmdroid.library.R.drawable.person
         )
         myLocationOverlay.setPersonIcon(icon)
-        myLocationOverlay.runOnFirstFix(Runnable { // never reaches this point
+        myLocationOverlay.runOnFirstFix { // never reaches this point
             Log.d("TAG", "runOnFirstFix")
             if (myLocationOverlay.myLocation == null) {
                 Log.d("TAG", "Location nott retrieved")
             }
-        })
+        }
         map.overlays.add(myLocationOverlay)
         map.invalidate()
 
@@ -303,7 +312,11 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             }
             override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
                 minRange = if (s.isNotEmpty()) {
-                    s.toString().toDouble()
+                    try{
+                        s.toString().toDouble()
+                    }catch(e: java.lang.NumberFormatException){
+                        0.0
+                    }
                 }else{
                     0.0
                 }
@@ -328,7 +341,11 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             }
             override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
                 maxRange = if (s.isNotEmpty()) {
-                    s.toString().toDouble()
+                    try{
+                        s.toString().toDouble()
+                    }catch(e: java.lang.NumberFormatException){
+                        0.0
+                    }
                 }else{
                     0.0
                 }
@@ -358,6 +375,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             lastLocLat = savedInstanceState.getFloat("LOC_LAT").toDouble()
             lastLocLong = savedInstanceState.getFloat("LOC_LONG").toDouble()
             state = savedInstanceState.getSerializable("STATE") as STATE
+            step = savedInstanceState.getInt("STEP")
 //            firstCreate = savedInstanceState.getBoolean("FIRST")
             if (state == STATE.NAVI || state == STATE.ROUTE) {
                 road = savedInstanceState.getParcelable("ROAD")!!
@@ -404,6 +422,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
                     btnNavi.isVisible = false
                     btnOrient.isVisible = false
                     btnQuitNavi.isVisible = true
+                    btnRefresh.isVisible = true
                     btnLocation.isVisible = false
                     btnRandom.isVisible = false
                     editMaxRange.isVisible = false
@@ -417,6 +436,11 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         return v
     }
 
+//    private fun turnByTurn(){
+//
+////        }
+//    }
+
     private fun navigate() {
         if (road.mStatus == Road.STATUS_OK) {
             state = STATE.NAVI
@@ -425,54 +449,103 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             myLocationOverlay.enableFollowLocation()
             myLocationOverlay.enableAutoStop = false
 
-            var i = 1
-            val insThread = Thread {
+//            var i = 1
+            insThread = Thread {
                 try {
-                    naviMapOrient()
-                    insTextView.text = road.mNodes[1].mInstructions
-                    Log.d("TAG", "mInstructions: ${road.mNodes[0].mInstructions}, ${road.mNodes[1].mInstructions}, ${road.mNodes[2].mInstructions}")
+                    insRunning.set(true)
+                    if (step != 0) {
+                        naviMapOrient(step - 1)
+                    } else {
+                        naviMapOrient()
+                    }
+                    insTextView.text = road.mNodes[step].mInstructions
                     if (!this::tts.isInitialized) {
                         tts = TextToSpeech(context, this)
                     }
-                    tts.speak(road.mNodes[1].mInstructions, TextToSpeech.QUEUE_FLUSH, null, "")
-    //                while (i < road.mNodes.size - 1 && state == STATE.NAVI){
-                    while (state == STATE.NAVI) {
+                    tts.speak(road.mNodes[step].mInstructions, TextToSpeech.QUEUE_FLUSH, null, "")
+                    //                while (i < road.mNodes.size - 1 && state == STATE.NAVI){
+                    while (state == STATE.NAVI && insRunning.get()) {
+
+                            //TODO: implement recalculating after straying off road
+////                        activity?.runOnUiThread {
+//                            lastLocLong = myLocationOverlay.myLocation.longitude
+//                            lastLocLat = myLocationOverlay.myLocation.latitude
+//                            if (!roadOverlay.isCloseTo(
+//                                    GeoPoint(lastLocLat, lastLocLong),
+//                                    5.0,
+//                                    map
+//                                ) && lastLocLat != 200.0
+//                            ) {
+//                                //                      state = STATE.RECALC
+////                            insRunning.set(false)
+////                            drawRoute()
+//                                Log.d(
+//                                    "TAG",
+//                                    "aaaaa, czemu wchodzi w tego ifaaaaa: $lastLocLat, $lastLocLong"
+//                                )
+//                                naviMapOrient()
+//                                insTextView.text = road.mNodes[step].mInstructions
+//                                if (!this::tts.isInitialized) {
+//                                    tts = TextToSpeech(context, this)
+//                                }
+//                                step = 1
+//                                tts.speak(
+//                                    road.mNodes[step].mInstructions,
+//                                    TextToSpeech.QUEUE_FLUSH,
+//                                    null,
+//                                    ""
+//                                )
+////                                state = STATE.NAVI
+////                                navigate()
+//                            }
+////                        }
+
                         try {
-                            if (abs(lastLocLat - road.mNodes[i].mLocation.latitude) < 0.0001 && abs(
-                                    lastLocLong - road.mNodes[i].mLocation.longitude
+                            if (abs(lastLocLat - road.mNodes[step].mLocation.latitude) < 0.0001 && abs(
+                                    lastLocLong - road.mNodes[step].mLocation.longitude
                                 ) < 0.0001) {
-                                insTextView.text = road.mNodes[i + 1].mInstructions
+                                Log.d(
+                                    "TAG",
+                                    "mInstructions: ${road.mNodes[step - 1].mInstructions}, ${road.mNodes[step].mInstructions}, ${road.mNodes[step + 1].mInstructions}"
+                                )
+                                insTextView.text = road.mNodes[step + 1].mInstructions
                                 tts.speak(
-                                    road.mNodes[i + 1].mInstructions,
+                                    road.mNodes[step + 1].mInstructions,
                                     TextToSpeech.QUEUE_FLUSH,
                                     null,
                                     ""
                                 )
-                                naviMapOrient(i)
-                                i += 1
+                                naviMapOrient(step)
+                                step += 1
                             }
                         }
                         catch (e: java.lang.IndexOutOfBoundsException){
-                            insTextView.text = road.mNodes[i].mInstructions
+                            insTextView.text = road.mNodes[step].mInstructions
                             tts.speak(
-                                road.mNodes[i].mInstructions,
+                                road.mNodes[step].mInstructions,
                                 TextToSpeech.QUEUE_FLUSH,
                                 null,
                                 ""
                             )
                         }
                     }
+
+
+//                    if (state == STATE.RECALC){
+//                        state = STATE.NAVI
+//                        turnByTurn()
+//                    }
                 } catch (e: Exception) {
                     Log.d("TAG", "ERROR while instructing $e")
                 }
             }
-            insThread.start()
+            insThread!!.start()
         }
     }
 
     private fun naviMapOrient(i: Int = 0){
         if (this::road.isInitialized) {
-            if (road.mNodes.size > i) {
+            if (road.mNodes.size > i+1) {
                 val projection: Projection = map.projection
                 val zero = Point()
                 projection.toPixels(road.mNodes[i].mLocation, zero)
@@ -546,6 +619,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         outState.putFloat("ORIENTATION", map.mapOrientation)
         outState.putBoolean("IS_LOC", isLocation)
         outState.putSerializable("STATE", state)
+        outState.putInt("STEP", step)
 //        outState.putBoolean("FIRST", firstCreate)
         if (state == STATE.NAVI || state == STATE.ROUTE) {
             outState.putParcelable("ROAD", road)
@@ -600,6 +674,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         }
         if (p0 == v.findViewById(R.id.btnNavi)){
             btnQuitNavi.isVisible = true
+            btnRefresh.isVisible = true
             btnLocation.isVisible = false
             btnNavi.isVisible = false
             btnOrient.isVisible = false
@@ -615,6 +690,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             map.controller.setZoom(16.0)
             myLocationOverlay.disableFollowLocation()
             btnQuitNavi.isVisible = false
+            btnRefresh.isVisible = false
             btnLocation.isVisible = true
             btnNavi.isVisible = true
             btnOrient.isVisible = true
@@ -625,18 +701,12 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
             requireActivity().window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 //            orientationListener.disable()
         }
-        //TODO: btnBug
-//        if (p0 == v.findViewById(R.id.btnBug)){
-//            val emailIntent = Intent(Intent.ACTION_SEND)
-//            emailIntent.type = "text/plain"
-//            emailIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf("INSERT_MAIL_HERE"))
-//            emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Bogi Trip bug report")
-//            emailIntent.putExtra(Intent.EXTRA_TEXT, "Log data")
-//
-//            val uri: Uri = Uri.fromFile(file)
-//            emailIntent.putExtra(Intent.EXTRA_STREAM, uri)
-//            startActivity(Intent.createChooser(emailIntent, "Pick an Email provider"))
-//        }
+        if (p0 == v.findViewById(R.id.btnRefresh)){
+            step = 0
+            drawRoute()
+            //TODO: cached instructions from previous route appear after refreshing
+            navigate()
+        }
     }
 
     private fun drawRoute(){
@@ -696,6 +766,7 @@ class StarterMapFragment : Fragment(), View.OnClickListener, View.OnLongClickLis
         }
         thread.start()
         map.invalidate()
+        step = 1
         if (state == STATE.NAVI && this::road.isInitialized){
             naviMapOrient()
         }

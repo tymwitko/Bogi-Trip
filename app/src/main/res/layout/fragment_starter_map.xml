@@ -37,6 +37,18 @@
         android:text="" />
 
     <ImageButton
+        android:id="@+id/btnRefresh"
+        android:layout_alignParentEnd="true"
+        android:layout_above="@id/btnQuitNavi"
+        android:layout_margin="24dp"
+        android:minWidth="54dp"
+        android:minHeight="51dp"
+        android:src="@drawable/ic_action_name"
+        android:background="#6200EA"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <ImageButton
         android:id="@+id/btnQuitNavi"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
