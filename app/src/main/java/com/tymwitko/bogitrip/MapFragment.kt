@@ -454,6 +454,7 @@ class MapFragment : Fragment() {
                         setCentred(true)
                         //play around with these values to get the location on screen in the right place for your application
                         setScaleBarOffset(dm!!.widthPixels / 2, 10)
+                        setMaxLength(10f)
                     })
 
                 val provider = GpsMyLocationProvider(context)
