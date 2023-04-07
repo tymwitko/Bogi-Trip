@@ -14,4 +14,6 @@
     <string name="no_destination">No destination selected!</string>
     <string name="calculating">Calculating route…</string>
     <string name="bug_url" translatable="false">https://github.com/tymwitko/Bogi-Trip/issues/new?assignees=&amp;labels=&amp;template=bug_report.md&amp;title=</string>
+    <string name="maximum_hint">Maximum range</string>
+    <string name="minimum_hint">Minimum range</string>
 </resources>

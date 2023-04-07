@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/parent_container"
     android:layout_width="match_parent"
@@ -10,15 +10,14 @@
         tilesource="Mapnik"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-
     </org.osmdroid.views.MapView>
 
     <ImageButton
         android:id="@+id/btnRandom"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/editRangeMax"
-        android:layout_alignParentEnd="true"
+        app:layout_constraintTop_toBottomOf="@id/editRangeMax"
+        app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="8dp"
         android:minWidth="54dp"
@@ -26,20 +25,10 @@
         android:src="@android:drawable/ic_menu_search"
         android:background="#6200EA" />
 
-    <TextView
-        android:id="@+id/centerer"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:visibility="invisible"
-        android:gravity="center"
-        android:text="" />
-
     <ImageButton
         android:id="@+id/btnRefresh"
-        android:layout_alignParentEnd="true"
-        android:layout_above="@id/btnQuitNavi"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/btnQuitNavi"
         android:layout_margin="24dp"
         android:minWidth="54dp"
         android:minHeight="51dp"
@@ -52,8 +41,8 @@
         android:id="@+id/btnQuitNavi"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentBottom="true"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
         android:minWidth="96dp"
@@ -65,10 +54,10 @@
         android:id="@+id/btnRoute"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/btnRandom"
+        app:layout_constraintTop_toBottomOf="@id/btnRandom"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
-        android:layout_alignParentEnd="true"
+        app:layout_constraintEnd_toEndOf="parent"
         android:minWidth="32dp"
         android:minHeight="48dp"
         android:src="@drawable/navto_small" />
@@ -77,8 +66,8 @@
         android:id="@+id/btnNavi"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/btnRandom"
-        android:layout_alignParentEnd="true"
+        app:layout_constraintTop_toBottomOf="@id/btnRandom"
+        app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
@@ -91,8 +80,8 @@
         android:id="@+id/btnLocation"
         android:layout_width="56dp"
         android:layout_height="56dp"
-        android:layout_below="@+id/editRangeMin"
-        android:layout_alignParentStart="true"
+        app:layout_constraintTop_toBottomOf="@id/editRangeMin"
+        app:layout_constraintStart_toStartOf="parent"
         android:layout_marginTop="16dp"
         android:layout_marginStart="8dp"
         android:background="?attr/selectableItemBackground"
@@ -104,8 +93,8 @@
         android:id="@+id/btnOrient"
         android:layout_width="56dp"
         android:layout_height="56dp"
-        android:layout_below="@+id/btnLocation"
-        android:layout_alignParentStart="true"
+        app:layout_constraintTop_toBottomOf="@id/btnLocation"
+        app:layout_constraintStart_toStartOf="parent"
         android:layout_marginTop="8dp"
         android:layout_marginStart="8dp"
         android:background="?attr/selectableItemBackground"
@@ -117,38 +106,39 @@
     <TextView
         android:id="@+id/insTextView"
         android:layout_width="match_parent"
+        app:layout_constraintTop_toTopOf="parent"
         android:layout_height="64dp"
         android:background="@color/design_default_color_background"
         android:textAlignment="center"
+        android:gravity="center"
         android:textColor="@color/design_default_color_on_secondary"
         android:textSize="20sp" />
 
     <EditText
         android:id="@+id/editRangeMax"
-        android:layout_width="160dp"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
+        app:layout_constraintTop_toTopOf="parent"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="8dp"
-        android:layout_alignParentEnd="true"
-        android:layout_toEndOf="@+id/centerer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/editRangeMin"
         android:ems="10"
-        android:hint="Maximum range"
+        android:hint="@string/maximum_hint"
         android:inputType="numberDecimal" />
 
     <EditText
         android:id="@+id/editRangeMin"
-        style="@style/Widget.AppCompat.EditText"
-        android:layout_width="160dp"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         android:layout_marginStart="8dp"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="8dp"
-        android:layout_toStartOf="@+id/centerer"
+        app:layout_constraintEnd_toStartOf="@id/editRangeMax"
         android:ems="10"
-        android:hint="Minimum range"
+        android:hint="@string/minimum_hint"
         android:inputType="numberDecimal" />
 
-</RelativeLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
