@@ -12,7 +12,8 @@ class TurnByTurnNavigator {
             try {
                 Log.d(
                 "TAG",
-                "mInstructions: ${road.mNodes[step - 1].mInstructions}, ${road.mNodes[step].mInstructions}, ${road.mNodes[step + 1].mInstructions}"
+                "mInstructions: ${road.mNodes[step - 1].mInstructions}," +
+                        "${road.mNodes[step].mInstructions}, ${road.mNodes[step + 1].mInstructions}"
                 )
                 road.mNodes[step + 1].mInstructions
             } catch (e: java.lang.IndexOutOfBoundsException){

@@ -343,12 +343,6 @@ class MapFragment : Fragment() {
             } == PackageManager.PERMISSION_GRANTED
         ) {
             Log.d("TAG", "Location access granted")
-//            locationManager.requestLocationUpdates(
-//                LocationManager.NETWORK_PROVIDER,
-//                1,
-//                1f,
-//                locationListener
-//            )
             context?.let {
                 (it.getSystemService(Context.LOCATION_SERVICE) as LocationManager)
                     .requestLocationUpdates(
@@ -515,11 +509,6 @@ class MapFragment : Fragment() {
                 activity?.runOnUiThread {
                     map.invalidate()
                     viewModel.getRouteOverlay()?.let {
-//                        if (state == STATE.POINT) {
-//                            viewModel.getRouteOverlay()?.let {
-//                                map.overlays.remove(it)
-//                            }
-//                        }
                         if (!viewModel.isInNaviMode()) {
                             binding.btnRoute.isVisible = false
                             binding.btnNavi.isVisible = true
