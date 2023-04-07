@@ -1,19 +1,15 @@
 package com.tymwitko.bogitrip
 
-import android.util.Log
 import androidx.navigation.Navigation
 import androidx.navigation.testing.TestNavHostController
-import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import androidx.fragment.app.testing.launchFragmentInContainer
-import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Before
 import androidx.test.uiautomator.UiDevice
@@ -32,7 +28,7 @@ class NavigationTest {
             ApplicationProvider.getApplicationContext()
         )
 
-        val mapScenario = launchFragmentInContainer<StarterMapFragment>(themeResId =
+        val mapScenario = launchFragmentInContainer<MapFragment>(themeResId =
         R.style.Theme_BogiTrip)
 
         mapScenario.onFragment { fragment ->

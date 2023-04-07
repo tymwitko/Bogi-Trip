@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="TOAST_EDGE">Podgląd nie mieści się na mapie!</string>
+    <string name="TOAST_LOC">Lokalizacja niedostępna! Sprawdź usługi lokalizacji i spróbuj ponownie.</string>
+    <string name="TOAST_SOON">Dostępne wkrótce!</string>
+    <string name="MIN_RANGE">Minimalny zasięg</string>
+    <string name="TOAST_INV">Nieprawidłowe ograniczenia!</string>
+    <string name="MAX_RANGE">Maksymalny zasięg</string>
+    <string name="RAND_TITLE">Punkt losowy</string>
+    <string name="RAND_SNIP">Losowy punkt wygenerowany przez aplikację</string>
+    <string name="ROUTING_FAILED">Wyznaczanie trasy nie powiodło się!</string>
+    <string name="bug_report">Zgłaszanie błędów</string>
+    <string name="no_destination">Cel podróży nie został wybrany!</string>
+    <string name="calculating">Wyznaczanie trasy…</string>
+</resources>
