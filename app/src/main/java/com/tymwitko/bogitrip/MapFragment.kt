@@ -16,6 +16,8 @@ import android.text.TextWatcher
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.*
+import android.view.animation.Animation
+import android.view.animation.AnimationUtils
 import android.widget.*
 import androidx.core.content.ContextCompat
 import androidx.core.view.MenuHost
@@ -56,18 +58,22 @@ import kotlin.random.Random
  * create an instance of this fragment.
  */
 
-//enum class STATE{
-//    INIT, POINT, ROUTE, NAVI
-//}
-
 class MapFragment : Fragment() {
     private lateinit var map : MapView
     private var minRange: Double? = null
     private var maxRange: Double? = null
-//    private var state = STATE.INIT
     private lateinit var binding: FragmentStarterMapBinding
 
     private val viewModel by viewModel<MapViewModel>()
+
+    private  val animRotateFabOpen : Animation by lazy { AnimationUtils.loadAnimation(context,
+        R.anim.rotate_fab_open) }
+    private  val animRotateFabClose : Animation by lazy { AnimationUtils.loadAnimation(context,
+        R.anim.rotate_fab_close) }
+    private  val animExpand: Animation by lazy { AnimationUtils.loadAnimation(context,
+        R.anim.expand) }
+    private  val animCollapse : Animation by lazy { AnimationUtils.loadAnimation(context,
+        R.anim.collapse) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -181,6 +187,12 @@ class MapFragment : Fragment() {
 
     private fun setupListeners() {
         binding.apply {
+            borgirFab.setOnClickListener {
+                val trigger = !btnRandom.isVisible
+                setFabAnimation(trigger)
+                setFabVisibility(trigger)
+            }
+
             btnRandom.setOnClickListener {
                 if (viewModel.getLocationFromOverlay() != null) {
                     binding.btnRoute.isVisible = true
@@ -348,6 +360,29 @@ class MapFragment : Fragment() {
             }
         }
 
+    }
+
+    private fun setFabAnimation(expanded: Boolean) {
+        if (!expanded) {
+            binding.apply {
+                btnRandom.startAnimation(animExpand)
+                btnRoute.startAnimation(animExpand)
+                borgirFab.startAnimation(animRotateFabOpen)
+            }
+        } else {
+            binding.apply {
+                btnRandom.startAnimation(animCollapse)
+                btnRoute.startAnimation(animCollapse)
+                borgirFab.startAnimation(animRotateFabClose)
+            }
+        }
+    }
+
+    private fun setFabVisibility(expanded: Boolean) {
+        binding.apply {
+            btnRandom.isVisible = expanded
+            btnRoute.isVisible = expanded
+        }
     }
 
     private fun setupInitialButtonVisibilityAndColors() {
@@ -579,6 +614,7 @@ class MapFragment : Fragment() {
     }
     private fun enterNaviMode() {
         binding.apply {
+            borgirFab.isVisible = false
             btnNavi.isVisible = false
             btnOrient.isVisible = false
             btnQuitNavi.isVisible = true

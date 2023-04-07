@@ -12,18 +12,18 @@
         android:layout_height="match_parent">
     </org.osmdroid.views.MapView>
 
-    <ImageButton
-        android:id="@+id/btnRandom"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/editRangeMax"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="8dp"
-        android:minWidth="54dp"
-        android:minHeight="51dp"
-        android:src="@android:drawable/ic_menu_search"
-        android:background="#6200EA" />
+<!--    <ImageButton-->
+<!--        android:id="@+id/btnRandom"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        app:layout_constraintTop_toBottomOf="@id/editRangeMax"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        android:layout_marginTop="16dp"-->
+<!--        android:layout_marginEnd="8dp"-->
+<!--        android:minWidth="54dp"-->
+<!--        android:minHeight="51dp"-->
+<!--        android:src="@android:drawable/ic_menu_search"-->
+<!--        android:background="#6200EA" />-->
 
     <ImageButton
         android:id="@+id/btnRefresh"
@@ -50,17 +50,44 @@
         android:background="@color/design_default_color_error"
         android:src="@android:drawable/ic_menu_close_clear_cancel" />
 
-    <ImageButton
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/borgirFab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_margin="32dp"
+        android:src="@android:drawable/btn_star_big_on"/>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnRandom"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/borgirFab"
+        android:layout_margin="32dp"
+        android:src="@android:drawable/ic_menu_search" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/btnRoute"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/btnRandom"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
         app:layout_constraintEnd_toEndOf="parent"
-        android:minWidth="32dp"
-        android:minHeight="48dp"
+        app:layout_constraintBottom_toTopOf="@id/btnRandom"
+        android:layout_margin="32dp"
         android:src="@drawable/navto_small" />
+
+<!--    <ImageButton-->
+<!--        android:id="@+id/btnRoute"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        app:layout_constraintTop_toBottomOf="@id/btnRandom"-->
+<!--        android:layout_marginTop="8dp"-->
+<!--        android:layout_marginEnd="8dp"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        android:minWidth="32dp"-->
+<!--        android:minHeight="48dp"-->
+<!--        android:src="@drawable/navto_small" />-->
 
     <ImageButton
         android:id="@+id/btnNavi"
